@@ -67,6 +67,10 @@ path = "examples/perf_compare.rs"
 name = "sanity_check"
 path = "examples/sanity_check.rs"
 
+[[example]]
+name = "byterag_indexer"
+path = "examples/byterag_indexer.rs"
+
  
 
 
