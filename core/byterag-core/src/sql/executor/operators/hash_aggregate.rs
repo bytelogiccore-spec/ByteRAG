@@ -1,0 +1,938 @@
+//! HashAggregate Operator — GROUP BY and aggregate functions
+
+use crate::error::{ByteRagError, ByteRagResult};
+use crate::sql::executor::operators::PhysicalOperator;
+use crate::sql::executor::spill::SpillContext;
+use crate::sql::planner::{AggregateFunction, PhysicalAggExpr};
+use ahash::AHashMap;
+use arrow::array::*;
+use arrow::compute;
+use arrow::datatypes::{DataType, Schema};
+use arrow::record_batch::RecordBatch;
+use smallvec::{SmallVec, smallvec};
+use std::sync::Arc;
+
+use crate::sql::executor::hash_utils;
+use crate::storage::gpu::GpuManager;
+
+/// Hash Aggregate 연산자 (GROUP BY) — AHashMap 기반 집계
+pub struct HashAggregateOperator {
+    input: Box<dyn PhysicalOperator>,
+    schema: Arc<Schema>,
+    /// Column indices to group by
+    group_by: Vec<usize>,
+    /// Aggregate expressions
+    aggregates: Vec<PhysicalAggExpr>,
+    /// 분산 집계 모드
+    mode: crate::sql::planner::types::AggregateMode,
+    /// Whether result has been produced
+    done: bool,
+    /// GPU manager for acceleration
+    gpu_manager: Option<Arc<GpuManager>>,
+    /// Spill 컨텍스트 — 메모리 임계치 초과 시 디스크 유출
+    spill_context: Option<SpillContext>,
+}
+
+impl HashAggregateOperator {
+    pub fn new(
+        input: Box<dyn PhysicalOperator>,
+        schema: Arc<Schema>,
+        group_by: Vec<usize>,
+        aggregates: Vec<PhysicalAggExpr>,
+        mode: crate::sql::planner::types::AggregateMode,
+    ) -> Self {
+        Self {
+            input,
+            schema,
+            group_by,
+            aggregates,
+            mode,
+            done: false,
+            gpu_manager: None,
+            spill_context: None,
+        }
+    }
+
+    /// Spill 컨텍스트를 주입하여 메모리 초과 시 디스크 유출 활성화.
+    pub fn with_spill(mut self, ctx: SpillContext) -> Self {
+        self.spill_context = Some(ctx);
+        self
+    }
+
+    pub fn with_gpu(mut self, gpu: Option<Arc<GpuManager>>) -> Self {
+        self.gpu_manager = gpu;
+        self
+    }
+
+    fn aggregate_all(&mut self) -> ByteRagResult<Option<RecordBatch>> {
+        use crate::sql::planner::types::AggregateMode;
+
+        // --- Spill-to-Disk 경로 ---
+        // take()로 꺼내서 borrow checker 충돌 방지 (처리 후 다시 set)
+        if let Some(mut spill_ctx) = self.spill_context.take() {
+            let mut spilled_paths = Vec::new();
+            let mut in_memory_batches: SmallVec<[RecordBatch; 8]> = smallvec![];
+
+            // 입력 batch를 하나씩 소모하며 메모리 추적
+            while let Some(batch) = self.input.next()? {
+                if batch.num_rows() == 0 {
+                    continue;
+                }
+                let estimated = SpillContext::estimate_batch_bytes(&batch);
+                spill_ctx.track(estimated);
+                in_memory_batches.push(batch);
+
+                // 임계치 초과 → partial 집계 후 Spill
+                if spill_ctx.should_spill() {
+                    let partial = self
+                        .run_aggregate_on(in_memory_batches.as_slice(), AggregateMode::Partial)?;
+                    if let Some(partial_batch) = partial {
+                        let path = spill_ctx.spill_batches(&[partial_batch])?;
+                        spilled_paths.push(path);
+                    }
+                    in_memory_batches.clear();
+                }
+            }
+
+            let current_mode = self.mode;
+
+            // Spill 없이 메모리 내 처리만 한 경우
+            if spilled_paths.is_empty() {
+                self.spill_context = Some(spill_ctx);
+                return self.run_aggregate_on(in_memory_batches.as_slice(), current_mode);
+            }
+
+            // 남은 in-memory 데이터도 partial 집계
+            if !in_memory_batches.is_empty() {
+                let partial =
+                    self.run_aggregate_on(in_memory_batches.as_slice(), AggregateMode::Partial)?;
+                if let Some(partial_batch) = partial {
+                    let path = spill_ctx.spill_batches(&[partial_batch])?;
+                    spilled_paths.push(path);
+                }
+            }
+
+            // 모든 spill 파일을 재적재하여 Final merge
+            let mut all_partial: Vec<RecordBatch> = Vec::new();
+            for path in &spilled_paths {
+                let reloaded = SpillContext::reload_batches(path)?;
+                all_partial.extend(reloaded);
+            }
+
+            self.spill_context = Some(spill_ctx);
+
+            if all_partial.is_empty() {
+                return Ok(Some(RecordBatch::new_empty(Arc::clone(&self.schema))));
+            }
+
+            return self.run_aggregate_on(&all_partial, AggregateMode::Final);
+        }
+
+        // --- 기존 in-memory 경로 (SpillContext 없음) ---
+        let mut batches: SmallVec<[RecordBatch; 8]> = smallvec![];
+        while let Some(batch) = self.input.next()? {
+            if batch.num_rows() > 0 {
+                batches.push(batch);
+            }
+        }
+
+        if batches.is_empty() {
+            return Ok(Some(RecordBatch::new_empty(Arc::clone(&self.schema))));
+        }
+
+        self.run_aggregate_on(batches.as_slice(), self.mode)
+    }
+
+    /// 주어진 batch 슬라이스에 대해 지정 모드로 집계를 수행합니다.
+    fn run_aggregate_on(
+        &self,
+        batches: &[RecordBatch],
+        mode: crate::sql::planner::types::AggregateMode,
+    ) -> ByteRagResult<Option<RecordBatch>> {
+        use crate::sql::planner::types::AggregateMode;
+
+        if batches.is_empty() {
+            return Ok(Some(RecordBatch::new_empty(Arc::clone(&self.schema))));
+        }
+
+        let input_schema = batches[0].schema();
+        let merged = concat_batches(&input_schema, batches)?;
+
+        if self.group_by.is_empty() {
+            return self.global_aggregate_with_mode(&merged, mode);
+        }
+
+        // Group by: build groups with vectorized hashing and collision handling
+        let mut groups: AHashMap<u64, Vec<Vec<usize>>> = AHashMap::new();
+        let group_indices: Vec<usize> = self.group_by.clone();
+        let hashes = hash_utils::hash_batch(&merged, &group_indices, 0)?;
+
+        for row_idx in 0..merged.num_rows() {
+            let hash = hashes.value(row_idx);
+            let entries = groups.entry(hash).or_default();
+
+            let mut found = false;
+            for group in entries.iter_mut() {
+                if compare_rows(
+                    &merged,
+                    &group_indices,
+                    group[0],
+                    &merged,
+                    &group_indices,
+                    row_idx,
+                ) {
+                    group.push(row_idx);
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                entries.push(vec![row_idx]);
+            }
+        }
+
+        let group_keys: Vec<Vec<usize>> = groups.into_values().flatten().collect();
+        let num_groups = group_keys.len();
+
+        let mut output_columns: Vec<ArrayRef> = Vec::new();
+        for &col_idx in &self.group_by {
+            let col = merged.column(col_idx);
+            let first_indices: Vec<usize> = group_keys.iter().map(|rows| rows[0]).collect();
+            output_columns.push(take_by_indices(col, &first_indices)?);
+        }
+
+        for agg in &self.aggregates {
+            let col = merged.column(agg.input);
+            let result = match mode {
+                AggregateMode::Simple | AggregateMode::Partial => {
+                    compute_aggregate_grouped(col, &agg.function, &group_keys, num_groups, mode)?
+                }
+                AggregateMode::Final => {
+                    merge_aggregate_grouped(col, &agg.function, &group_keys, num_groups)?
+                }
+            };
+            output_columns.push(result);
+        }
+
+        Ok(Some(RecordBatch::try_new(
+            Arc::clone(&self.schema),
+            output_columns,
+        )?))
+    }
+
+    /// Global aggregate (no GROUP BY) — 지정 모드 사용.
+    fn global_aggregate_with_mode(
+        &self,
+        batch: &RecordBatch,
+        mode: crate::sql::planner::types::AggregateMode,
+    ) -> ByteRagResult<Option<RecordBatch>> {
+        use crate::sql::planner::types::AggregateMode;
+        let mut columns: Vec<ArrayRef> = Vec::new();
+        for agg in &self.aggregates {
+            let col = batch.column(agg.input);
+            let result = match mode {
+                AggregateMode::Simple | AggregateMode::Partial => {
+                    compute_aggregate_global(col, &agg.function, mode)?
+                }
+                AggregateMode::Final => merge_aggregate_global(col, &agg.function)?,
+            };
+            columns.push(result);
+        }
+        Ok(Some(RecordBatch::try_new(
+            Arc::clone(&self.schema),
+            columns,
+        )?))
+    }
+
+    /// Try to perform global aggregation on GPU.
+    /// Returns None if GPU acceleration is not possible for the given query/types.
+    #[allow(dead_code)]
+    fn try_gpu_global_aggregate(&self, batches: &[RecordBatch]) -> ByteRagResult<Option<RecordBatch>> {
+        let gpu = match &self.gpu_manager {
+            Some(g) => g,
+            None => return Ok(None),
+        };
+
+        let mut results = Vec::with_capacity(self.aggregates.len());
+
+        for agg in &self.aggregates {
+            // Currently only Int32 SUM/COUNT supported on GPU
+            let first_col = batches[0].column(agg.input);
+            if first_col.data_type() != &DataType::Int32 {
+                return Ok(None);
+            }
+
+            match agg.function {
+                AggregateFunction::Sum => {
+                    let mut total_sum = 0i64;
+                    for batch in batches {
+                        // Upload to temporary table in GPU cache
+                        gpu.upload_batch_pinned("_temp_agg", batch)?;
+                        let column_name = batch.schema().field(agg.input).name().to_string();
+                        total_sum += gpu.sum("_temp_agg", &column_name)?;
+                        gpu.clear_table_cache("_temp_agg");
+                    }
+                    results.push(Arc::new(Float64Array::from(vec![total_sum as f64])) as ArrayRef);
+                }
+                AggregateFunction::Count => {
+                    let mut total_count = 0u64;
+                    for batch in batches {
+                        gpu.upload_batch_pinned("_temp_agg", batch)?;
+                        let column_name = batch.schema().field(agg.input).name().to_string();
+                        total_count += gpu.count("_temp_agg", &column_name)?;
+                        gpu.clear_table_cache("_temp_agg");
+                    }
+                    results.push(Arc::new(Int64Array::from(vec![total_count as i64])) as ArrayRef);
+                }
+                _ => return Ok(None), // Other functions fallback to CPU
+            }
+        }
+
+        Ok(Some(RecordBatch::try_new(
+            Arc::clone(&self.schema),
+            results,
+        )?))
+    }
+}
+
+impl PhysicalOperator for HashAggregateOperator {
+    fn schema(&self) -> &Schema {
+        &self.schema
+    }
+
+    fn next(&mut self) -> ByteRagResult<Option<RecordBatch>> {
+        if self.done {
+            return Ok(None);
+        }
+        self.done = true;
+        self.aggregate_all()
+    }
+
+    fn reset(&mut self) -> ByteRagResult<()> {
+        self.done = false;
+        self.input.reset()
+    }
+}
+
+// ===== Helper Functions =====
+
+/// Concatenate multiple RecordBatches into one.
+fn concat_batches(schema: &Arc<Schema>, batches: &[RecordBatch]) -> ByteRagResult<RecordBatch> {
+    if batches.len() == 1 {
+        return Ok(batches[0].clone());
+    }
+    Ok(compute::concat_batches(schema, batches)?)
+}
+
+/// 두 행의 지정된 컬럼 값이 모두 일치하는지 비교합니다 (해시 충돌 방어용).
+fn compare_rows(
+    left_batch: &RecordBatch,
+    left_cols: &[usize],
+    left_row: usize,
+    right_batch: &RecordBatch,
+    right_cols: &[usize],
+    right_row: usize,
+) -> bool {
+    for i in 0..left_cols.len() {
+        let l_col = left_batch.column(left_cols[i]);
+        let r_col = right_batch.column(right_cols[i]);
+
+        if !compare_column_values(l_col, left_row, r_col, right_row) {
+            return false;
+        }
+    }
+    true
+}
+
+fn compare_column_values(l_col: &ArrayRef, l_row: usize, r_col: &ArrayRef, r_row: usize) -> bool {
+    if l_col.is_null(l_row) || r_col.is_null(r_row) {
+        return l_col.is_null(l_row) && r_col.is_null(r_row);
+    }
+
+    match l_col.data_type() {
+        DataType::Int32 => {
+            let l = l_col.as_any().downcast_ref::<Int32Array>().unwrap();
+            let r = r_col.as_any().downcast_ref::<Int32Array>().unwrap();
+            l.value(l_row) == r.value(r_row)
+        }
+        DataType::Int64 => {
+            let l = l_col.as_any().downcast_ref::<Int64Array>().unwrap();
+            let r = r_col.as_any().downcast_ref::<Int64Array>().unwrap();
+            l.value(l_row) == r.value(r_row)
+        }
+        DataType::Float64 => {
+            let l = l_col.as_any().downcast_ref::<Float64Array>().unwrap();
+            let r = r_col.as_any().downcast_ref::<Float64Array>().unwrap();
+            l.value(l_row) == r.value(r_row)
+        }
+        DataType::Utf8 => {
+            let l = l_col.as_any().downcast_ref::<StringArray>().unwrap();
+            let r = r_col.as_any().downcast_ref::<StringArray>().unwrap();
+            l.value(l_row) == r.value(r_row)
+        }
+        _ => format!("{:?}", l_col.as_any()) == format!("{:?}", r_col.as_any()),
+    }
+}
+
+/// Take rows by indices from a column.
+fn take_by_indices(col: &ArrayRef, indices: &[usize]) -> ByteRagResult<ArrayRef> {
+    let idx_arr = UInt32Array::from(indices.iter().map(|&i| i as u32).collect::<Vec<_>>());
+    Ok(compute::take(col.as_ref(), &idx_arr, None)?)
+}
+
+/// Compute an aggregate function over groups of rows (순차 처리 - 소규모 그룹).
+fn compute_aggregate_grouped(
+    col: &ArrayRef,
+    func: &AggregateFunction,
+    groups: &[Vec<usize>],
+    num_groups: usize,
+    mode: crate::sql::planner::types::AggregateMode,
+) -> ByteRagResult<ArrayRef> {
+    use crate::sql::planner::types::AggregateMode;
+
+    // For each group, compute the aggregate value
+    match col.data_type() {
+        DataType::Int32 | DataType::Int64 | DataType::Float64 => {
+            if matches!(func, AggregateFunction::Avg) && mode == AggregateMode::Partial {
+                // Partial AVG: Return Struct(sum, count)
+                let mut sum_builder = Float64Builder::with_capacity(num_groups);
+                let mut count_builder = Int64Builder::with_capacity(num_groups);
+
+                for group_rows in groups {
+                    let (sum, count) = aggregate_avg_group(col, group_rows);
+                    sum_builder.append_value(sum);
+                    count_builder.append_value(count as i64);
+                }
+
+                let fields = vec![
+                    Arc::new(arrow::datatypes::Field::new(
+                        "sum",
+                        DataType::Float64,
+                        false,
+                    )),
+                    Arc::new(arrow::datatypes::Field::new(
+                        "count",
+                        DataType::Int64,
+                        false,
+                    )),
+                ];
+                let arrays = vec![
+                    Arc::new(sum_builder.finish()) as ArrayRef,
+                    Arc::new(count_builder.finish()) as ArrayRef,
+                ];
+                Ok(Arc::new(StructArray::try_new(fields.into(), arrays, None)?) as ArrayRef)
+            } else {
+                let mut builder = Float64Builder::with_capacity(num_groups);
+                for group_rows in groups {
+                    let val = match col.data_type() {
+                        DataType::Int32 => aggregate_i32_group(
+                            col.as_any().downcast_ref::<Int32Array>().unwrap(),
+                            group_rows,
+                            func,
+                        ),
+                        DataType::Int64 => aggregate_i64_group(
+                            col.as_any().downcast_ref::<Int64Array>().unwrap(),
+                            group_rows,
+                            func,
+                        ),
+                        DataType::Float64 => aggregate_f64_group(
+                            col.as_any().downcast_ref::<Float64Array>().unwrap(),
+                            group_rows,
+                            func,
+                        ),
+                        _ => unreachable!(),
+                    };
+                    builder.append_value(val);
+                }
+                Ok(Arc::new(builder.finish()))
+            }
+        }
+        _ => {
+            // COUNT works for any type
+            if matches!(func, AggregateFunction::Count) {
+                let mut builder = Float64Builder::with_capacity(num_groups);
+                for group_rows in groups {
+                    let count = group_rows.iter().filter(|&&i| !col.is_null(i)).count();
+                    builder.append_value(count as f64);
+                }
+                Ok(Arc::new(builder.finish()))
+            } else {
+                Err(ByteRagError::NotImplemented(format!(
+                    "aggregate {:?} for type {:?}",
+                    func,
+                    col.data_type()
+                )))
+            }
+        }
+    }
+}
+
+fn aggregate_avg_group(col: &ArrayRef, rows: &[usize]) -> (f64, usize) {
+    let mut sum = 0.0;
+    let mut count = 0;
+
+    match col.data_type() {
+        DataType::Int32 => {
+            let arr = col.as_any().downcast_ref::<Int32Array>().unwrap();
+            for &i in rows {
+                if !arr.is_null(i) {
+                    sum += arr.value(i) as f64;
+                    count += 1;
+                }
+            }
+        }
+        DataType::Int64 => {
+            let arr = col.as_any().downcast_ref::<Int64Array>().unwrap();
+            for &i in rows {
+                if !arr.is_null(i) {
+                    sum += arr.value(i) as f64;
+                    count += 1;
+                }
+            }
+        }
+        DataType::Float64 => {
+            let arr = col.as_any().downcast_ref::<Float64Array>().unwrap();
+            for &i in rows {
+                if !arr.is_null(i) {
+                    sum += arr.value(i);
+                    count += 1;
+                }
+            }
+        }
+        _ => {}
+    }
+    (sum, count)
+}
+
+/// Merge partial aggregate results (Final phase)
+fn merge_aggregate_grouped(
+    col: &ArrayRef,
+    func: &AggregateFunction,
+    groups: &[Vec<usize>],
+    num_groups: usize,
+) -> ByteRagResult<ArrayRef> {
+    match func {
+        AggregateFunction::Avg => {
+            // Input is StructArray(sum, count)
+            let struct_arr = col.as_any().downcast_ref::<StructArray>().ok_or_else(|| {
+                ByteRagError::SqlExecution {
+                    message: "Expected StructArray for Final AVG".to_string(),
+                    context: "HashAggregate Final".to_string(),
+                }
+            })?;
+            let sum_arr = struct_arr
+                .column(0)
+                .as_any()
+                .downcast_ref::<Float64Array>()
+                .unwrap();
+            let count_arr = struct_arr
+                .column(1)
+                .as_any()
+                .downcast_ref::<Int64Array>()
+                .unwrap();
+
+            let mut builder = Float64Builder::with_capacity(num_groups);
+            for group_rows in groups {
+                let mut total_sum = 0.0;
+                let mut total_count = 0;
+                for &i in group_rows {
+                    if !struct_arr.is_null(i) {
+                        total_sum += sum_arr.value(i);
+                        total_count += count_arr.value(i) as usize;
+                    }
+                }
+                if total_count > 0 {
+                    builder.append_value(total_sum / total_count as f64);
+                } else {
+                    builder.append_value(0.0);
+                }
+            }
+            Ok(Arc::new(builder.finish()))
+        }
+        AggregateFunction::Count | AggregateFunction::Sum => {
+            // Both are merged by summing
+            let arr = col.as_any().downcast_ref::<Float64Array>().ok_or_else(|| {
+                ByteRagError::SqlExecution {
+                    message: "Expected Float64Array for Final Sum/Count".to_string(),
+                    context: "HashAggregate Final".to_string(),
+                }
+            })?;
+            let mut builder = Float64Builder::with_capacity(num_groups);
+            for group_rows in groups {
+                let mut sum = 0.0;
+                for &i in group_rows {
+                    if !arr.is_null(i) {
+                        sum += arr.value(i);
+                    }
+                }
+                builder.append_value(sum);
+            }
+            Ok(Arc::new(builder.finish()))
+        }
+        AggregateFunction::Min => {
+            let arr = col.as_any().downcast_ref::<Float64Array>().unwrap();
+            let mut builder = Float64Builder::with_capacity(num_groups);
+            for group_rows in groups {
+                let mut min = f64::INFINITY;
+                for &i in group_rows {
+                    if !arr.is_null(i) {
+                        min = min.min(arr.value(i));
+                    }
+                }
+                builder.append_value(min);
+            }
+            Ok(Arc::new(builder.finish()))
+        }
+        AggregateFunction::Max => {
+            let arr = col.as_any().downcast_ref::<Float64Array>().unwrap();
+            let mut builder = Float64Builder::with_capacity(num_groups);
+            for group_rows in groups {
+                let mut max = f64::NEG_INFINITY;
+                for &i in group_rows {
+                    if !arr.is_null(i) {
+                        max = max.max(arr.value(i));
+                    }
+                }
+                builder.append_value(max);
+            }
+            Ok(Arc::new(builder.finish()))
+        }
+    }
+}
+
+fn aggregate_i32_group(arr: &Int32Array, rows: &[usize], func: &AggregateFunction) -> f64 {
+    let values: Vec<f64> = rows
+        .iter()
+        .filter(|&&i| !arr.is_null(i))
+        .map(|&i| arr.value(i) as f64)
+        .collect();
+    aggregate_f64_values(&values, func)
+}
+
+fn aggregate_i64_group(arr: &Int64Array, rows: &[usize], func: &AggregateFunction) -> f64 {
+    let values: Vec<f64> = rows
+        .iter()
+        .filter(|&&i| !arr.is_null(i))
+        .map(|&i| arr.value(i) as f64)
+        .collect();
+    aggregate_f64_values(&values, func)
+}
+
+fn aggregate_f64_group(arr: &Float64Array, rows: &[usize], func: &AggregateFunction) -> f64 {
+    let values: Vec<f64> = rows
+        .iter()
+        .filter(|&&i| !arr.is_null(i))
+        .map(|&i| arr.value(i))
+        .collect();
+    aggregate_f64_values(&values, func)
+}
+
+fn aggregate_f64_values(values: &[f64], func: &AggregateFunction) -> f64 {
+    match func {
+        AggregateFunction::Count => values.len() as f64,
+        AggregateFunction::Sum => values.iter().sum(),
+        AggregateFunction::Avg => {
+            if values.is_empty() {
+                0.0
+            } else {
+                values.iter().sum::<f64>() / values.len() as f64
+            }
+        }
+        AggregateFunction::Min => values.iter().copied().fold(f64::INFINITY, f64::min),
+        AggregateFunction::Max => values.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+    }
+}
+
+/// Compute a global aggregate (no GROUP BY) producing a single-row array.
+fn compute_aggregate_global(
+    col: &ArrayRef,
+    func: &AggregateFunction,
+    mode: crate::sql::planner::types::AggregateMode,
+) -> ByteRagResult<ArrayRef> {
+    use crate::sql::planner::types::AggregateMode;
+
+    if matches!(func, AggregateFunction::Avg) && mode == AggregateMode::Partial {
+        let (sum, count) = aggregate_avg_group(col, &(0..col.len()).collect::<Vec<_>>());
+
+        let fields = vec![
+            Arc::new(arrow::datatypes::Field::new(
+                "sum",
+                DataType::Float64,
+                false,
+            )),
+            Arc::new(arrow::datatypes::Field::new(
+                "count",
+                DataType::Int64,
+                false,
+            )),
+        ];
+        let arrays = vec![
+            Arc::new(Float64Array::from(vec![sum])) as ArrayRef,
+            Arc::new(Int64Array::from(vec![count as i64])) as ArrayRef,
+        ];
+        return Ok(Arc::new(StructArray::try_new(fields.into(), arrays, None)?) as ArrayRef);
+    }
+
+    // COUNT는 항상 Int64 반환 (Simple/Partial 모드에서)
+    if matches!(func, AggregateFunction::Count) {
+        let count = (0..col.len()).filter(|&i| !col.is_null(i)).count() as i64;
+        return Ok(Arc::new(Int64Array::from(vec![count])));
+    }
+
+    // 다른 집계 함수들은 입력 타입에 따라 처리
+    match col.data_type() {
+        DataType::Int32 => {
+            let arr = col.as_any().downcast_ref::<Int32Array>().unwrap();
+            let values: Vec<i32> = (0..arr.len())
+                .filter(|&i| !arr.is_null(i))
+                .map(|i| arr.value(i))
+                .collect();
+
+            let result = match func {
+                AggregateFunction::Sum => values.iter().map(|&v| v as i64).sum::<i64>() as f64,
+                AggregateFunction::Avg => {
+                    if values.is_empty() {
+                        0.0
+                    } else {
+                        values.iter().map(|&v| v as f64).sum::<f64>() / values.len() as f64
+                    }
+                }
+                AggregateFunction::Min => values.iter().min().copied().unwrap_or(0) as f64,
+                AggregateFunction::Max => values.iter().max().copied().unwrap_or(0) as f64,
+                AggregateFunction::Count => unreachable!(),
+            };
+            Ok(Arc::new(Float64Array::from(vec![result])))
+        }
+        DataType::Int64 => {
+            let arr = col.as_any().downcast_ref::<Int64Array>().unwrap();
+            let values: Vec<i64> = (0..arr.len())
+                .filter(|&i| !arr.is_null(i))
+                .map(|i| arr.value(i))
+                .collect();
+
+            let result = match func {
+                AggregateFunction::Sum => values.iter().sum::<i64>() as f64,
+                AggregateFunction::Avg => {
+                    if values.is_empty() {
+                        0.0
+                    } else {
+                        values.iter().sum::<i64>() as f64 / values.len() as f64
+                    }
+                }
+                AggregateFunction::Min => values.iter().min().copied().unwrap_or(0) as f64,
+                AggregateFunction::Max => values.iter().max().copied().unwrap_or(0) as f64,
+                AggregateFunction::Count => unreachable!(),
+            };
+            Ok(Arc::new(Float64Array::from(vec![result])))
+        }
+        DataType::Float64 => {
+            let arr = col.as_any().downcast_ref::<Float64Array>().unwrap();
+            let values: Vec<f64> = (0..arr.len())
+                .filter(|&i| !arr.is_null(i))
+                .map(|i| arr.value(i))
+                .collect();
+
+            let result = match func {
+                AggregateFunction::Sum => values.iter().sum(),
+                AggregateFunction::Avg => {
+                    if values.is_empty() {
+                        0.0
+                    } else {
+                        values.iter().sum::<f64>() / values.len() as f64
+                    }
+                }
+                AggregateFunction::Min => values.iter().copied().fold(f64::INFINITY, f64::min),
+                AggregateFunction::Max => values.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+                AggregateFunction::Count => unreachable!(),
+            };
+            Ok(Arc::new(Float64Array::from(vec![result])))
+        }
+        _ => Err(ByteRagError::NotImplemented(format!(
+            "global aggregate {:?} for {:?}",
+            func,
+            col.data_type()
+        ))),
+    }
+}
+
+fn merge_aggregate_global(col: &ArrayRef, func: &AggregateFunction) -> ByteRagResult<ArrayRef> {
+    match func {
+        AggregateFunction::Avg => {
+            let struct_arr = col.as_any().downcast_ref::<StructArray>().unwrap();
+            let sum_arr = struct_arr
+                .column(0)
+                .as_any()
+                .downcast_ref::<Float64Array>()
+                .unwrap();
+            let count_arr = struct_arr
+                .column(1)
+                .as_any()
+                .downcast_ref::<Int64Array>()
+                .unwrap();
+
+            let mut total_sum = 0.0;
+            let mut total_count = 0;
+            for i in 0..struct_arr.len() {
+                if !struct_arr.is_null(i) {
+                    total_sum += sum_arr.value(i);
+                    total_count += count_arr.value(i) as usize;
+                }
+            }
+            let avg = if total_count > 0 {
+                total_sum / total_count as f64
+            } else {
+                0.0
+            };
+            Ok(Arc::new(Float64Array::from(vec![avg])))
+        }
+        AggregateFunction::Count => {
+            let mut total = 0;
+            if let Some(iarr) = col.as_any().downcast_ref::<Int64Array>() {
+                for i in 0..iarr.len() {
+                    if !iarr.is_null(i) {
+                        total += iarr.value(i);
+                    }
+                }
+            } else if let Some(farr) = col.as_any().downcast_ref::<Float64Array>() {
+                for i in 0..farr.len() {
+                    if !farr.is_null(i) {
+                        total += farr.value(i) as i64;
+                    }
+                }
+            }
+            Ok(Arc::new(Int64Array::from(vec![total])))
+        }
+        AggregateFunction::Sum => {
+            let mut total = 0.0;
+            if let Some(farr) = col.as_any().downcast_ref::<Float64Array>() {
+                for i in 0..farr.len() {
+                    if !farr.is_null(i) {
+                        total += farr.value(i);
+                    }
+                }
+            } else if let Some(iarr) = col.as_any().downcast_ref::<Int64Array>() {
+                for i in 0..iarr.len() {
+                    if !iarr.is_null(i) {
+                        total += iarr.value(i) as f64;
+                    }
+                }
+            }
+            Ok(Arc::new(Float64Array::from(vec![total])))
+        }
+        AggregateFunction::Min => {
+            let arr = col.as_any().downcast_ref::<Float64Array>().unwrap();
+            let mut min = f64::INFINITY;
+            for i in 0..arr.len() {
+                if !arr.is_null(i) {
+                    min = min.min(arr.value(i));
+                }
+            }
+            Ok(Arc::new(Float64Array::from(vec![min])))
+        }
+        AggregateFunction::Max => {
+            let arr = col.as_any().downcast_ref::<Float64Array>().unwrap();
+            let mut max = f64::NEG_INFINITY;
+            for i in 0..arr.len() {
+                if !arr.is_null(i) {
+                    max = max.max(arr.value(i));
+                }
+            }
+            Ok(Arc::new(Float64Array::from(vec![max])))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::sql::executor::operators::hash_aggregate::*;
+    use crate::sql::planner::{AggregateFunction, AggregateMode};
+    use arrow::datatypes::*;
+    use arrow::record_batch::RecordBatch;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_partial_avg_aggregation() {
+        // Prepare input: [10, 20, 30]
+        let schema = Arc::new(Schema::new(vec![Field::new("val", DataType::Int32, false)]));
+        let batch = RecordBatch::try_new(
+            Arc::clone(&schema),
+            vec![Arc::new(Int32Array::from(vec![10, 20, 30]))],
+        )
+        .unwrap();
+
+        // Partial AVG
+        let result = compute_aggregate_global(
+            &batch.column(0),
+            &AggregateFunction::Avg,
+            AggregateMode::Partial,
+        )
+        .unwrap();
+
+        // Should return StructArray(sum: 60.0, count: 3)
+        let struct_arr = result.as_any().downcast_ref::<StructArray>().unwrap();
+        let sum_arr = struct_arr
+            .column(0)
+            .as_any()
+            .downcast_ref::<Float64Array>()
+            .unwrap();
+        let count_arr = struct_arr
+            .column(1)
+            .as_any()
+            .downcast_ref::<Int64Array>()
+            .unwrap();
+
+        assert_eq!(sum_arr.value(0), 60.0);
+        assert_eq!(count_arr.value(0), 3);
+    }
+
+    #[test]
+    fn test_final_avg_aggregation() {
+        // Prepare partial results from 2 shards
+        // Shard 1: [10, 20] -> sum: 30.0, count: 2
+        // Shard 2: [30, 40, 50] -> sum: 120.0, count: 3
+
+        let fields = vec![
+            Arc::new(Field::new("sum", DataType::Float64, false)),
+            Arc::new(Field::new("count", DataType::Int64, false)),
+        ];
+        let struct_arr = Arc::new(
+            StructArray::try_new(
+                fields.into(),
+                vec![
+                    Arc::new(Float64Array::from(vec![30.0, 120.0])),
+                    Arc::new(Int64Array::from(vec![2, 3])),
+                ],
+                None,
+            )
+            .unwrap(),
+        ) as ArrayRef;
+
+        // Final AVG
+        let result = merge_aggregate_global(&struct_arr, &AggregateFunction::Avg).unwrap();
+
+        // Should return (30 + 120) / (2 + 3) = 150 / 5 = 30.0
+        let res_arr = result.as_any().downcast_ref::<Float64Array>().unwrap();
+        assert_eq!(res_arr.value(0), 30.0);
+    }
+
+    #[test]
+    fn test_partial_sum_aggregation() {
+        let arr = Arc::new(Int32Array::from(vec![1, 2, 3])) as ArrayRef;
+        let result =
+            compute_aggregate_global(&arr, &AggregateFunction::Sum, AggregateMode::Partial)
+                .unwrap();
+
+        let res_arr = result.as_any().downcast_ref::<Float64Array>().unwrap();
+        assert_eq!(res_arr.value(0), 6.0);
+    }
+
+    #[test]
+    fn test_final_sum_aggregation() {
+        let partial_sums = Arc::new(Float64Array::from(vec![10.0, 20.0])) as ArrayRef;
+        let result = merge_aggregate_global(&partial_sums, &AggregateFunction::Sum).unwrap();
+
+        let res_arr = result.as_any().downcast_ref::<Float64Array>().unwrap();
+        assert_eq!(res_arr.value(0), 30.0);
+    }
+}
+

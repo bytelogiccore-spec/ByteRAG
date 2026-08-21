@@ -1,0 +1,332 @@
+---
+layout: default
+title: 변경 이력
+nav_order: 8
+parent: 한국어
+---
+
+# 변경 이력 (Changelog)
+
+DBX의 주요 변경사항을 기록합니다.
+
+[Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 형식을 따르며,
+[Semantic Versioning](https://semver.org/lang/ko/) 규칙을 준수합니다.
+
+---
+
+## [0.2.2] - 2026-04-13
+
+데이터 영속성 및 파티션 라우팅 관련 긴급 수정 릴리스.
+
+### 수정 사항
+- **삭제 영속성(Durability) 강화** — 삭제 작업 시 누락되었던 WAL 로그 기록을 추가하여, 시스템 재시작이나 장애 발생 후에도 삭제된 데이터가 복구되지 않도록 수정했습니다.
+- **파티션 라우팅 수정** — `delete`, `get`, `get_snapshot` 연산이 하위 파티션으로 올바르게 라우팅되지 않던 전역 결함을 해결하여, 파티셔닝된 테이블에서도 데이터 일관성이 보장되도록 개선했습니다.
+
+---
+
+## [0.2.1-beta] - 2026-04-10
+
+MVCC VersionedKey 식별 확인 로직 강화 및 DeltaStore 조회 성능 최적화 릴리스.
+
+### 주요 개선 사항
+- **MVCC Magic Suffix 도입** — `VersionedKey` 바이트 배열 인코딩에 2바이트 매직 서픽스(`[0xDB, 0x58]`)를 추가하여, 로우 바이트 배열만으로도 MVCC 포맷 여부를 명확하고 안전하게 식별할 수 있도록 무결성을 강화했습니다.
+- **DeltaStore 오버헤드 제거** — 인메모리 `DeltaStore`의 구조가 `VersionedKey` 대신 원시 `Vec<u8>` 바이트를 키로 사용하도록 재설계되었습니다. 이를 통해 반복적인 디코딩 오버헤드와 Option 추출 파싱 과정이 제거되고, 원시 바이트 범위 경계 변환 정확도가 개선되었습니다.
+- **다중 언어 기능화 체계화** — 차기 버전을 위한 I18n 다중 언어 지원 사전 준비 문서를 `docs/Version History`에 정리해 두었습니다.
+
+---
+
+## [0.2.0-beta] - 2026-04-03
+
+Native SSTable 기반 WOS 도입, Fast-Path 초저지연 최적화 및 워크스페이스 구조 리팩토링 업데이트.
+
+### 새로운 기능
+
+#### 🏗️ Native WOS (Write-Optimized Store)
+- **Sled 제거** — 외부 KV 저장소 종속성을 완전히 제거하고 자체 SSTable 기반의 Native WOS 엔진을 도입했습니다.
+- **초고속 Flush** — WAL 순차 쓰기와 SSTable 병합(Compaction) 로직을 최적화하여 쓰기 지연 시간을 단축했습니다.
+
+#### 🚀 Fast-Path (Local Bypass) 최적화
+- **로컬 실행 최적화** — 단일 노드 환경에서 분산 DAG 스케줄링 오버헤드를 우회하는 Fast-Path를 도입했습니다.
+- **동기식 데이터 스트림** — mpsc 채널 오버헤드를 제거한 동기식 데이터 반환 경로(`sync_batches`)를 통해 **51µs**의 초저지연 레이턴시를 달성했습니다.
+
+#### 📦 워크스페이스 구조 리팩토링
+- **Crate 분리** — `byterag-core`에서 테스트(`byterag-tests`), 벤치마크(`byterag-benchmarks`), 예제(`byterag-examples`)를 별도 크레이트로 분리하여 코어 라이브러리를 경량화했습니다.
+- **의존성 클렌징** — 핵심 엔진에서 불필요한 개발용 의존성을 제거하여 빌드 속도와 유지보수성을 향상했습니다.
+
+### 개선 사항
+- **Grid Engine** — `s2n-quic` 트랜스포트 및 DAG 스케줄링 로직 안정화.
+- **버전 통합** — 모든 워크스페이스 멤버의 버전을 `0.2.0-beta`로 일괄 업데이트.
+
+---
+
+## [0.1.2-beta] - 2026-03-21
+
+Phase 1 원자적 연산 처리 및 그리드 분산 락, 네이티브 생태계 호환성 업데이트.
+
+### 새로운 기능
+
+#### 🛡️ Atomic CAS & 동시성 (Phase 1)
+- **Atomic CAS API** — `insert_if_not_exists`, `compare_and_swap` 등의 무잠금 원자적 연산 내장.
+- **Row-level Latch Lock Manager** — 무거운 테이블 단위 Mutex를 제거하고 1024-Striped 기반의 초고속 분산 키 락커 추가.
+
+#### 🌐 분산 그리드 아키텍처 (Grid Engine DLM)
+- **Network-Aware Distributed Lock Manager (DLM)** — Fencing Token 및 Lease 주기(타임아웃) 기반의 네트워크 분산 락(DLM) 코디네이터 탑재. (Heartbeat 및 탈취 자동화)
+- **채널 멀티플렉서 (GridRouter)** — `GridMessage` 프로토콜을 생성하여 복제 트래픽과 Lock 트래픽을 단일 QUIC 포트로 전송하는 무환도 라우팅 구현.
+- **수동 락 스위칭 래퍼 (GridDatabaseAsync)** — 로컬의 초고속 성능 훼손 방지를 위해 분산 환경용 비동기 명시적 락 연동 모듈 분리.
+
+#### 🦀 생태계 및 비동기 지원
+- **Native Serde 지원** — `insert_struct`, `get_struct` 등 비용 없는 Bincode 바인딩 공식 지원.
+- **Async First Driver** — 대용량 I/O 블로킹 방지를 위한 `tokio` 기반 `DatabaseAsync` 비동기 래퍼 모델 탑재.
+
+---
+
+## [0.1.1-beta] - 2026-03-19
+
+WAL 구현, 멀티코어 병렬화, Multi-Master Failover, 크로스-노드 샤딩 고도화, 분산 트랜잭션, 파티셔닝 시너지 Phase 3 완전 구현.
+
+### 새로운 기능
+
+#### 📊 파티셔닝 시너지 (Phase 3)
+
+- **INSERT 시 row_count 자동 증가** — 파티셔닝된 테이블 INSERT 시 해당 파티션 `row_count` 자동 +1. 수동 호출 불필요
+- **`update_partition_stats(table, partition, stats)`** — 쿼리 옵티마이저용 정밀 통계 수동 설정 (min/max/null/distinct)
+- **`get_partition_stats` / `all_partition_stats`** — 파티션 통계 조회
+- **`set_partition_compression(table, partition, config)`** — 파티션별 독립 압축 레벨 설정 (ZSTD 1~9)
+- **`get_partition_compression`** — 현재 설정 조회 (미설정 시 기본값 Snappy)
+- **`enable_auto_archive(table, lifecycle)`** — 단 한 번 호출로 완전 자동화 활성화
+  - 호출 즉시 `dbx-lifecycle-scheduler` 백그라운드 스레드 자동 기동 (1시간 주기)
+  - 여러 테이블 등록해도 스레드 1개만 유지 (CAS `compare_exchange` 보장)
+  - `archive_after_days` 경과 → ZSTD 레벨 9 + Cold 티어 자동 적용
+  - `delete_after_days` 경과 → 파티션 메타데이터 자동 삭제
+- **`run_partition_lifecycle(table)`** — 온디맨드 즉시 실행, `(archived, deleted)` 반환
+- **`run_all_partition_lifecycles()`** — 모든 등록 테이블 일괄 즉시 처리
+- **`get_partition_creation_time(partition)`** — INSERT 시 자동 기록된 최초 쓰기 시각 조회
+- **`partition_needs_archive` / `partition_needs_delete`** — 수동 조건 확인
+- **`set_partition_tier(table, partition, hint)`** — `Hot` / `Warm` / `Cold` 티어 힌트 설정
+- **`get_partition_tier`** — 현재 티어 조회 (미설정 시 기본값 `Hot`)
+- **`list_partitions_by_tier(table, hint)`** — 특정 티어의 파티션 목록 반환
+
+
+### 새로운 기능
+
+#### 📦 WAL / 병렬화 (이전 릴리스 기준)
+- **WAL (Write-Ahead Log) sequential append** — WOS flush 시 전체 재작성 대신 WAL 파일에 순차 append. compact 조건(`wal_entries >= WAL_COMPACT_THRESHOLD`) 도달 시에만 SSTable 병합
+- **`ParallelismConfig` / `DbConfig`** — CPU 코어 사용 비율(`cpu_cap`)과 병렬화 임계값(`min_rows_for_parallel`)을 제어하는 설정 구조체
+- **`DirtyBufferMode`** — WOS `dirty` 버퍼의 자료구조를 런타임에 선택 가능. `BTreeMap`(기본, 범위 쿼리 최적) 또는 `DashMap`(동시성 최적). `DbConfig::dirty_buffer_mode`로 지정, 재시작 시 자유롭게 전환 가능
+- **`Database::open_with_config()`** — `DbConfig`를 받는 새 생성자. `conservative()` / `aggressive()` 프리셋 제공
+- **`Compactor::bypass_flush_tables()`** — 여러 테이블을 동시에 bypass_flush하는 신규 API
+
+#### 🔄 Multi-Master Failover (Phase 5.3)
+- **Quorum 기반 리더 선출** — `term` 번호와 과반 투표 집계(Raft-like)를 통해 안정적인 Master 선출. Split-Brain 방지를 위해 낮은 term의 Master를 Slave로 자동 강등 (`replication/node.rs`, `replication/protocol.rs`)
+- **벡터 클록 (Vector Clock)** — LWW 대신 인과관계 기반 충돌 감지. `HappensBefore` / `Concurrent` 판단으로 데이터 손실 없는 충돌 해결 (`replication/vector_clock.rs`)
+
+#### 🗂️ 크로스-노드 샤딩 고도화 (Phase 5.4)
+- **노드 가중치 기반 vnode 분배** — `ShardNode::weight` 필드로 노드별 데이터 할당량을 비균등 조정 (`sharding/node_ring.rs`, `sharding/router.rs`)
+- **데이터 리밸런싱** — 노드 추가/제거 시 영향받는 해시 범위의 키를 자동 이관. `compute_tasks()` + `execute()` 패턴 (`sharding/rebalancer.rs`)
+- **2PC 분산 트랜잭션** — Prepare → Commit/Abort 2단계 커밋으로 크로스-노드 원자성 보장. 하나의 Participant 실패 시 전체 롤백 (`sharding/two_phase.rs`)
+
+#### 🌐 QUIC 기반 Transport 계층 (Phase P3)
+- **s2n-quic 기반 QuicTransport** — AWS의 `s2n-quic` (v1.76)을 사용한 실제 프로세스 간 통신. TLS 1.3 기본 내장, Head-of-Line Blocking 없는 멀티스트림 전송 (`replication/transport.rs`)
+- **Transport 런타임 설정** — `ReplicationConfig::in_memory()` / `ReplicationConfig::quic(...)` 으로 코드 수정 없이 단일 프로세스 ↔ 분산 배포 전환. `DbConfig::replication` 필드로 통합
+- **QuicNode 서버/클라이언트 모드** — `QuicNode::server()` / `QuicNode::client()` 비동기 초기화. bincode 직렬화, 4바이트 길이 프리픽스 프레이밍, 자가서명 인증서 헬퍼 제공
+
+### 성능 개선
+
+| 항목 | 내용 | 위치 |
+|------|------|------|
+| P1 | `insert_batch()` — 1,000행 이상 `par_iter()` 병렬 삽입 | `crud.rs` |
+| P2 | `get_batches()` projection — `par_iter()` 컬럼 선택 병렬화 | `columnar_cache.rs` |
+| P3 | GROUP BY 집계 — 1,000 그룹 이상 `par_iter()` 병렬 집계 | `hash_aggregate.rs` |
+| P4 | JOIN Build/Probe Phase — `into_par_iter()` (1,000행 임계값) | `join.rs` |
+| P5 | `scan()` — Delta+WOS를 `rayon::join()`으로 동시 스캔 | `crud.rs` |
+| P6 | `compact()` — 페이지 역직렬화만 `par_iter()` 병렬화 | `table_store.rs` |
+| P7 | SIMD — `wide` crate stable 전환 (nightly 제거, 항상 활성) | `simd.rs` |
+| P8 | WAL encode — 직렬화를 `par_iter()`, 파일 쓰기는 순차 유지 | `table_store.rs` |
+| P9 | Compaction — batch `Arc::clone`을 `par_iter()`으로 병렬 수집 | `compaction.rs` |
+
+### 벤치마크 결과 (병렬화 적용 전 대비)
+
+| 항목 | 개선폭 |
+|------|--------|
+| `byterag_scan_10k` | **-29.2%** (rayon::join 효과) |
+| `byterag_get_10k` | **-6.8%** |
+
+### 의존성 추가
+
+- `wide = "0.7"` — stable SIMD 추상화 crate
+- `s2n-quic = "1"` — AWS QUIC 구현 (프로세스 간 레플리케이션용)
+- `tokio` — `net`, `io-util` feature 추가
+
+---
+
+## [0.1.0-beta] - 2026-03-17
+
+배포 파이프라인 안정화 릴리스.
+
+### 수정
+
+- **CI 트리거** — push/PR 이벤트 트리거 및 누락된 런타임 설정 추가
+- **Cargo.lock** — workspace root에 `[profile.release]` 이동, Cargo.lock 업데이트
+- **crates.io 배포** — `--locked` 플래그 제거로 crates.io 배포 오류 해소
+- **npm 배포** — `cargo build` 대신 `napi build` 사용 (`@napi-rs/cli` v2 → v3 업그레이드)
+
+---
+
+## [0.0.5-beta] - 2026-02-16
+
+전체 언어 바인딩 API 동기화 릴리스. ● = 기존, 🆕 = 이번 릴리스에서 추가.
+
+### 바인딩 API 매트릭스
+
+| API | Node.js | Python | FFI/C | C# | C++ |
+|-----|:-------:|:------:|:-----:|:--:|:---:|
+| `open` / `open_in_memory` | ● | ● | ● | ● | ● |
+| `insert` / `get` / `delete` | ● | ● | ● | ● | ● |
+| `count` | 🆕 | 🆕 | ● | 🆕 | ● |
+| `flush` | 🆕 | 🆕 | ● | 🆕 | ● |
+| `insert_batch` | ● | 🆕 | 🆕 | 🆕 | 🆕 |
+| `scan` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `range` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `table_names` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `gc` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `is_encrypted` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `execute_sql` | ● | 🆕 | 🆕 | 🆕 | 🆕 |
+| `create_index` / `drop_index` / `has_index` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `save_to_file` / `load_from_file` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `insert_versioned` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `get_snapshot` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `current_timestamp` / `allocate_commit_ts` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| Transaction (`begin` / `commit` / `rollback`) | ● | ● | ● | ● | 🆕 |
+
+> **FFI 참고**: 컬렉션 반환은 opaque 핸들 패턴 (`DbxScanResult`, `DbxStringList`) + 접근자 + free 함수로 구현.
+
+### 수정
+
+- `byterag-ffi`의 `clippy::manual-c-str-literals` 경고 수정 (`b"No error\0"` → `c"No error"`)
+
+---
+
+## [0.0.4-beta] - 2026-02-15
+
+첫 번째 기능 릴리스. 쿼리 실행 파이프라인 전면 최적화.
+
+### 새로운 기능
+
+- **쿼리 플랜 캐시** — 동일 SQL을 반복 실행할 때 파싱/최적화를 건너뛰는 2계층(메모리 + 디스크) 캐시 도입
+- **병렬 쿼리 실행** — 대량 데이터 필터링, 집계, 프로젝션을 Rayon 스레드 풀로 병렬 처리
+- **WAL 파티셔닝** — 테이블별 독립 WAL 파티션으로 쓰기 병목 해소
+- **스키마 버저닝** — 무중단 DDL 지원. 스키마 변경 이력 관리 및 버전별 롤백
+- **인덱스 버저닝** — 인덱스 재구축 이력 관리 및 성능 추적
+- **기능 플래그** — 런타임에 개별 기능을 켜고 끌 수 있는 토글 시스템 (환경변수 / 파일 저장 지원)
+- **UDF 프레임워크** — 사용자 정의 함수 (스칼라, 집계, 테이블), 트리거, 스케줄러
+- **벤치마크 프레임워크** — Criterion 기반 성능 측정 및 Before/After 비교 도구
+- **PTX Persistent Kernel** — NVRTC 기반 런타임 CUDA 커널 컴파일. GPU에서 상주하며 work queue 처리 (`gpu` feature, 옵셔널)
+- **Hash/Range 샤딩** — GPU 샤드 전략: 해시 기반(ahash) 및 범위 기반 행 분배
+- **CUDA 스트림 관리** — `fork_default_stream()`을 통한 별도 스트림 생성
+- **스키마 기반 INSERT 직렬화** — 테이블 스키마 존재 시 컬럼명 키를 가진 JSON 객체 직렬화
+- **JOIN 최적화** — INNER JOIN에서 크기 기반 build/probe 테이블 스왑 (작은 테이블을 build로 사용)
+- **Tombstone 삭제** — 컬럼나 델타 스토리지에 버저닝 tombstone 지원
+- **테이블별 캐시 무효화** — 전체 캐시 초기화 대신 테이블 단위 선택적 제거
+
+### 성능 개선
+
+| 항목 | 이전 | 이후 | 개선폭 |
+|------|:----:|:----:|:------:|
+| SQL 반복 파싱 (10회) | 146 µs | 20 µs | 7.3x |
+| WAL 100건 쓰기 | 1,016 µs | 71 µs | 14.2x |
+| 스키마 조회 (싱글스레드) | 86 ns | 46 ns | 47% |
+| 스키마 조회 (8스레드 동시) | 7.4M ops/s | 18.1M ops/s | 2.44x |
+| 소규모 집계 (150행) | 32.5 µs | 991 ns | 33x |
+
+### 리팩토링
+
+- **SQL 옵티마이저** — 874줄 단일 파일 `optimizer.rs`를 모듈 디렉토리 구조로 분리 (6파일: trait, 규칙 4개, 테스트)
+- **CREATE FUNCTION** — 괄호 파라미터 실제 파싱 구현
+- **ORDER BY** — `sqlparser` 0.52 `OrderBy.exprs` API 테스트 활성화
+
+### 내부 변경
+
+- `SchemaVersionManager` 내부 저장소를 `RwLock<HashMap>` → `DashMap`으로 전환하여 동시 읽기 성능 향상
+- `ParallelQueryExecutor`의 병렬화 판단 기준을 batch 수에서 **총 행 수 기반**으로 변경 (기본 1,000행 미만은 순차 실행)
+- SQL 파서에 동적 스레딩 및 배치 크기 자동 조절 적용
+- `cudarc` 0.19.2의 Unified Memory, P2P 감지, Persistent Kernel 제한사항 문서화
+
+### 의존성
+
+- `dashmap` 6.x 추가 (락프리 동시 해시맵)
+- `rayon` 1.x 추가 (병렬 처리)
+- `criterion` 0.5 추가 (벤치마크)
+
+---
+
+## [0.0.3-beta] - 2026-02-15
+
+### 추가
+- Python, Node.js, .NET 패키지 상세 사용법 가이드
+  - JSON 데이터 처리 예제
+  - 배치 작업 및 에러 처리
+  - 실전 예제 (KV Store, Session Manager, Cache Wrapper)
+  - Node.js TypeScript 지원
+  - ASP.NET Core 통합 예제
+- 모든 언어 바인딩에 대한 이중 언어 문서 (영문 + 한글)
+
+### 변경
+- **플랫폼 지원**: **Windows x64 전용**으로 수정 (Linux/macOS 계획됨)
+- **Cargo.toml**: `homepage`를 GitHub Pages로 변경
+- **crates.io**: `byterag-core`만 배포 (`dbx-derive`, `byterag-ffi` 제거)
+- **문서**: Derive Macro 섹션 제거 (프로덕션에서 미사용)
+- **Doc Comment**: Rust doc comment를 영문으로 변환 (docs.rs 일관성)
+
+### 수정
+- 과대 광고된 플랫폼 지원 (이전: 모든 플랫폼, 현재: Windows x64 전용)
+- 패키지 간 버전 불일치
+
+---
+
+## [0.0.2-beta] - 2026-02-15
+
+### 추가
+- 모든 언어 바인딩 패키지 문서화 (Rust, .NET, Python, Node.js, C/C++)
+- GitHub Pages 이중 언어 문서 (영어 + 한국어) 패키지별 제공
+- CHANGELOG.md 생성
+- NuGet 패키지 메타데이터 (버전, 라이선스, README)
+- 모든 Rust 크레이트 Cargo.toml에 `readme` 필드 추가
+- GitHub Release 워크플로우에 `permissions: contents: write` 추가
+
+### 변경
+- **CI/CD**: 단일 릴리스 워크플로우를 레지스트리별 독립 워크플로우로 분리
+  - `publish-crates.yml` — crates.io (dbx-derive → byterag-core → byterag-ffi 순서)
+  - `publish-nuget.yml` — NuGet
+  - `publish-pypi.yml` — PyPI
+  - `publish-npm.yml` — npm
+  - `release.yml` — 빌드 + 테스트 + GitHub Release 생성만 담당
+- **버전**: 모든 패키지를 `0.0.2-beta`로 통일
+- **라이선스**: crates.io 호환을 위해 `MIT`로 단순화
+- **워크스페이스 메타데이터**: `repository`, `homepage`, `documentation` 상속 추가
+- **crates.io**: publish 명령에서 `|| true` 제거, `--no-verify` 추가, 인덱스 대기 60초로 증가
+
+### 수정
+- NuGet 403 오류: API 키 권한 설정 가이드
+- PyPI 400 오류: PEP 440 형식으로 버전 수정 (`0.0.2b0`)
+- npm EOTP 오류: 2FA 우회를 위한 Granular Access Token 가이드
+- crates.io 순환 의존성: `dbx-derive` dev-dependency에서 `version` 제거
+- GitHub Release 403: `contents: write` 권한 추가
+- `edition = "2024"` 유지하여 `let chains` 문법 지원
+
+---
+
+## [0.0.1-beta] - 2026-02-12
+
+### 추가
+- 최초 릴리스
+- 5-Tier 하이브리드 스토리지 엔진 (WOS → L0 → L1 → L2 → Cold)
+- MVCC 트랜잭션 지원 (스냅샷 격리)
+- SQL 엔진 (CREATE TABLE, INSERT, SELECT, UPDATE, DELETE)
+- Write-Ahead Logging (WAL) 장애 복구
+- 언어 바인딩: Rust, C#/.NET, Python, Node.js, C/C++
+- 암호화 지원 (AES-GCM-SIV, ChaCha20-Poly1305)
+- Arrow/Parquet 네이티브 컬럼나 포맷
+- GitHub Pages 문서 사이트
+- GitHub Actions CI/CD 파이프라인
+- SQLite, Sled, Redb 비교 벤치마크
+

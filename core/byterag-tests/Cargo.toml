@@ -1,0 +1,24 @@
+[package]
+name = "byterag-tests"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Integration tests for ByteRAG database engine"
+
+[dependencies]
+byterag-core = { path = "../byterag-core" }
+arrow = "54"
+tempfile = "3"
+sqlparser = "0.52"
+tokio = { version = "1", features = ["full"] }
+rcgen = "0.13"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[dev-dependencies]
+# 테스트 전용 라이브러리들
+proptest = "1.10"
+
+

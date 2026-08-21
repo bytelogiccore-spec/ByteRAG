@@ -1,0 +1,17 @@
+[package]
+name = "byterag-node"
+version.workspace = true
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+byterag-core = { path = "../byterag-core", version = "0.1.0" }
+napi = { version = "3", features = ["async"] }
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"
+
+

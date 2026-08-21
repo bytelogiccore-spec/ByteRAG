@@ -1,0 +1,489 @@
+//! DBX PyO3 Native Python Bindings
+//!
+//! High-performance native Python bindings using PyO3.
+
+#![allow(clippy::useless_conversion)]
+
+use byterag_core::Database as CoreDatabase;
+use pyo3::exceptions::PyRuntimeError;
+use pyo3::prelude::*;
+use pyo3::types::PyBytes;
+use std::sync::Arc;
+
+/// Python Database class
+#[pyclass]
+struct Database {
+    db: Arc<CoreDatabase>,
+}
+
+#[pymethods]
+impl Database {
+    // ═══════════════════════════════════════════════════════
+    // Constructors
+    // ═══════════════════════════════════════════════════════
+
+    /// Open an in-memory database
+    #[staticmethod]
+    fn open_in_memory() -> PyResult<Self> {
+        CoreDatabase::open_in_memory()
+            .map(|db| Database { db: Arc::new(db) })
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to open database: {e}")))
+    }
+
+    /// Open a database at the given path
+    #[staticmethod]
+    fn open(path: &str) -> PyResult<Self> {
+        CoreDatabase::open(std::path::Path::new(path))
+            .map(|db| Database { db })
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to open database: {e}")))
+    }
+
+    /// Load a database from a snapshot file
+    #[staticmethod]
+    fn load_from_file(path: &str) -> PyResult<Self> {
+        CoreDatabase::load_from_file(path)
+            .map(|db| Database { db: Arc::new(db) })
+            .map_err(|e| PyRuntimeError::new_err(format!("Load failed: {e}")))
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // CRUD Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Insert a key-value pair into a table
+    fn insert(&self, table: &str, key: &[u8], value: &[u8]) -> PyResult<()> {
+        self.db
+            .insert(table, key, value)
+            .map_err(|e| PyRuntimeError::new_err(format!("Insert failed: {e}")))
+    }
+
+    /// Get a value by key from a table
+    fn get<'py>(
+        &self,
+        py: Python<'py>,
+        table: &str,
+        key: &[u8],
+    ) -> PyResult<Option<Bound<'py, PyBytes>>> {
+        match self.db.get(table, key) {
+            Ok(Some(value)) => Ok(Some(PyBytes::new_bound(py, &value))),
+            Ok(None) => Ok(None),
+            Err(e) => Err(PyRuntimeError::new_err(format!("Get failed: {e}"))),
+        }
+    }
+
+    /// Delete a key from a table
+    fn delete(&self, table: &str, key: &[u8]) -> PyResult<()> {
+        self.db
+            .delete(table, key)
+            .map(|_| ())
+            .map_err(|e| PyRuntimeError::new_err(format!("Delete failed: {e}")))
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Batch Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Insert multiple key-value pairs at once
+    fn insert_batch(&self, table: &str, rows: Vec<(Vec<u8>, Vec<u8>)>) -> PyResult<()> {
+        self.db
+            .insert_batch(table, rows)
+            .map_err(|e| PyRuntimeError::new_err(format!("Batch insert failed: {e}")))
+    }
+
+    /// Scan all key-value pairs in a table
+    fn scan<'py>(
+        &self,
+        py: Python<'py>,
+        table: &str,
+    ) -> PyResult<Vec<(Bound<'py, PyBytes>, Bound<'py, PyBytes>)>> {
+        let entries = self
+            .db
+            .scan(table)
+            .map_err(|e| PyRuntimeError::new_err(format!("Scan failed: {e}")))?;
+        Ok(entries
+            .into_iter()
+            .map(|(k, v)| (PyBytes::new_bound(py, &k), PyBytes::new_bound(py, &v)))
+            .collect())
+    }
+
+    /// Scan a range of keys [start_key, end_key)
+    fn range<'py>(
+        &self,
+        py: Python<'py>,
+        table: &str,
+        start_key: &[u8],
+        end_key: &[u8],
+    ) -> PyResult<Vec<(Bound<'py, PyBytes>, Bound<'py, PyBytes>)>> {
+        let entries = self
+            .db
+            .range(table, start_key, end_key)
+            .map_err(|e| PyRuntimeError::new_err(format!("Range scan failed: {e}")))?;
+        Ok(entries
+            .into_iter()
+            .map(|(k, v)| (PyBytes::new_bound(py, &k), PyBytes::new_bound(py, &v)))
+            .collect())
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Utility Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Count the number of rows in a table
+    fn count(&self, table: &str) -> PyResult<usize> {
+        self.db
+            .count(table)
+            .map_err(|e| PyRuntimeError::new_err(format!("Count failed: {e}")))
+    }
+
+    /// Flush the database to disk
+    fn flush(&self) -> PyResult<()> {
+        self.db
+            .flush()
+            .map_err(|e| PyRuntimeError::new_err(format!("Flush failed: {e}")))
+    }
+
+    /// Get all table names
+    fn table_names(&self) -> PyResult<Vec<String>> {
+        self.db
+            .table_names()
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get table names: {e}")))
+    }
+
+    /// Run garbage collection (MVCC version cleanup)
+    fn gc(&self) -> PyResult<usize> {
+        self.db
+            .gc()
+            .map_err(|e| PyRuntimeError::new_err(format!("GC failed: {e}")))
+    }
+
+    /// Check if the database is encrypted
+    fn is_encrypted(&self) -> bool {
+        self.db.is_encrypted()
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SQL Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Execute a SQL statement (SELECT/INSERT/UPDATE/DELETE)
+    fn execute_sql(&self, sql: &str) -> PyResult<usize> {
+        self.db
+            .execute_sql(sql)
+            .map(|batches| batches.iter().map(|b| b.num_rows()).sum::<usize>())
+            .map_err(|e| PyRuntimeError::new_err(format!("SQL execution failed: {e}")))
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // DDL API Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Drop a table
+    fn drop_table(&self, table_name: &str) -> PyResult<()> {
+        self.db
+            .drop_table(table_name)
+            .map_err(|e| PyRuntimeError::new_err(format!("Drop table failed: {e}")))
+    }
+
+    /// Check if a table exists
+    fn table_exists(&self, table_name: &str) -> bool {
+        self.db.table_exists(table_name)
+    }
+
+    /// List all tables
+    fn list_tables(&self) -> Vec<String> {
+        self.db.list_tables()
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Index Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Create an index on a table column
+    fn create_index(&self, table: &str, column: &str) -> PyResult<()> {
+        self.db
+            .create_index(table, column)
+            .map_err(|e| PyRuntimeError::new_err(format!("Create index failed: {e}")))
+    }
+
+    /// Drop an index from a table column
+    fn drop_index(&self, table: &str, column: &str) -> PyResult<()> {
+        self.db
+            .drop_index(table, column)
+            .map_err(|e| PyRuntimeError::new_err(format!("Drop index failed: {e}")))
+    }
+
+    /// Check if an index exists on a table column
+    fn has_index(&self, table: &str, column: &str) -> bool {
+        self.db.has_index(table, column)
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Snapshot Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Save the in-memory database to a file
+    fn save_to_file(&self, path: &str) -> PyResult<()> {
+        self.db
+            .save_to_file(path)
+            .map_err(|e| PyRuntimeError::new_err(format!("Save failed: {e}")))
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // MVCC Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Get the current MVCC timestamp
+    fn current_timestamp(&self) -> u64 {
+        self.db.current_timestamp()
+    }
+
+    /// Allocate a new commit timestamp
+    fn allocate_commit_ts(&self) -> u64 {
+        self.db.allocate_commit_ts()
+    }
+
+    /// Insert a versioned key-value pair (MVCC)
+    fn insert_versioned(
+        &self,
+        table: &str,
+        key: &[u8],
+        value: &[u8],
+        commit_ts: u64,
+    ) -> PyResult<()> {
+        self.db
+            .insert_versioned(table, key, Some(value), commit_ts)
+            .map_err(|e| PyRuntimeError::new_err(format!("Versioned insert failed: {e}")))
+    }
+
+    /// Read a specific version of a key (Snapshot Read)
+    fn get_snapshot<'py>(
+        &self,
+        py: Python<'py>,
+        table: &str,
+        key: &[u8],
+        read_ts: u64,
+    ) -> PyResult<Option<Bound<'py, PyBytes>>> {
+        match self.db.get_snapshot(table, key, read_ts) {
+            Ok(Some(Some(value))) => Ok(Some(PyBytes::new_bound(py, &value))),
+            Ok(Some(None)) | Ok(None) => Ok(None),
+            Err(e) => Err(PyRuntimeError::new_err(format!(
+                "Snapshot read failed: {e}"
+            ))),
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Zero-Copy Operations
+    // ═══════════════════════════════════════════════════════
+
+    /// Zero-copy scan - returns ScanResult that owns the data
+    fn scan_zero_copy(&self, table: &str) -> PyResult<ScanResult> {
+        let entries = self
+            .db
+            .scan(table)
+            .map_err(|e| PyRuntimeError::new_err(format!("Scan failed: {e}")))?;
+
+        // Serialize into a flat buffer
+        let mut data = Vec::new();
+        let count = entries.len();
+
+        for (key, value) in entries {
+            // Write key length + key
+            data.extend_from_slice(&(key.len() as u32).to_le_bytes());
+            data.extend_from_slice(&key);
+
+            // Write value length + value
+            data.extend_from_slice(&(value.len() as u32).to_le_bytes());
+            data.extend_from_slice(&value);
+        }
+
+        Ok(ScanResult { data, count })
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Transaction & Close
+    // ═══════════════════════════════════════════════════════
+
+    /// Begin a transaction
+    fn begin_transaction(slf: PyRef<'_, Self>) -> PyResult<Transaction> {
+        Ok(Transaction {
+            db: slf.into(),
+            operations: Vec::new(),
+        })
+    }
+
+    /// Close the database
+    fn close(&self) -> PyResult<()> {
+        Ok(())
+    }
+}
+
+/// Transaction operation
+enum TxOperation {
+    Insert {
+        table: String,
+        key: Vec<u8>,
+        value: Vec<u8>,
+    },
+    Delete {
+        table: String,
+        key: Vec<u8>,
+    },
+}
+
+/// Python Transaction class
+#[pyclass]
+struct Transaction {
+    db: Py<Database>,
+    operations: Vec<TxOperation>,
+}
+
+#[pymethods]
+impl Transaction {
+    /// Insert a key-value pair (buffered)
+    fn insert(&mut self, table: &str, key: &[u8], value: &[u8]) {
+        self.operations.push(TxOperation::Insert {
+            table: table.to_string(),
+            key: key.to_vec(),
+            value: value.to_vec(),
+        });
+    }
+
+    /// Delete a key (buffered)
+    fn delete(&mut self, table: &str, key: &[u8]) {
+        self.operations.push(TxOperation::Delete {
+            table: table.to_string(),
+            key: key.to_vec(),
+        });
+    }
+
+    /// Commit the transaction
+    fn commit(&mut self, py: Python) -> PyResult<()> {
+        let db = self.db.borrow(py);
+
+        type InsertBatch = std::collections::HashMap<String, Vec<(Vec<u8>, Vec<u8>)>>;
+        let mut insert_batches: InsertBatch = std::collections::HashMap::new();
+        let mut delete_ops: Vec<(String, Vec<u8>)> = Vec::new();
+
+        for op in self.operations.drain(..) {
+            match op {
+                TxOperation::Insert { table, key, value } => {
+                    insert_batches.entry(table).or_default().push((key, value));
+                }
+                TxOperation::Delete { table, key } => {
+                    delete_ops.push((table, key));
+                }
+            }
+        }
+
+        for (table, rows) in insert_batches {
+            db.db
+                .insert_batch(&table, rows)
+                .map_err(|e| PyRuntimeError::new_err(format!("Batch insert failed: {e}")))?;
+        }
+
+        for (table, key) in delete_ops {
+            db.db
+                .delete(&table, &key)
+                .map_err(|e| PyRuntimeError::new_err(format!("Delete failed: {e}")))?;
+        }
+
+        Ok(())
+    }
+
+    /// Rollback the transaction
+    fn rollback(&mut self) {
+        self.operations.clear();
+    }
+}
+
+/// PyO3 module definition
+#[pymodule]
+fn byterag_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<Database>()?;
+    m.add_class::<Transaction>()?;
+    m.add_class::<ScanResult>()?;
+    Ok(())
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Zero-Copy SCAN Implementation
+// ═══════════════════════════════════════════════════════════════
+
+/// Zero-copy scan result - Rust owns the data, Python gets read-only access
+#[pyclass]
+struct ScanResult {
+    // Rust owns the serialized data
+    data: Vec<u8>,
+    // Metadata for parsing
+    count: usize,
+}
+
+#[pymethods]
+impl ScanResult {
+    /// Get the raw data as bytes (zero-copy, read-only)
+    fn as_bytes<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        // Return a reference to the data as PyBytes (no copy)
+        PyBytes::new_bound(py, &self.data)
+    }
+
+    /// Get the number of key-value pairs
+    fn count(&self) -> usize {
+        self.count
+    }
+
+    /// Parse the data into list of tuples (fallback, requires copy)
+    fn to_pairs<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> PyResult<Vec<(Bound<'py, PyBytes>, Bound<'py, PyBytes>)>> {
+        // Deserialize from the flat buffer
+        let mut offset = 0;
+        let mut pairs = Vec::with_capacity(self.count);
+
+        for _ in 0..self.count {
+            // Read key length
+            if offset + 4 > self.data.len() {
+                return Err(PyRuntimeError::new_err("Invalid data format"));
+            }
+            let key_len = u32::from_le_bytes([
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            ]) as usize;
+            offset += 4;
+
+            // Read key
+            if offset + key_len > self.data.len() {
+                return Err(PyRuntimeError::new_err("Invalid data format"));
+            }
+            let key = PyBytes::new_bound(py, &self.data[offset..offset + key_len]);
+            offset += key_len;
+
+            // Read value length
+            if offset + 4 > self.data.len() {
+                return Err(PyRuntimeError::new_err("Invalid data format"));
+            }
+            let value_len = u32::from_le_bytes([
+                self.data[offset],
+                self.data[offset + 1],
+                self.data[offset + 2],
+                self.data[offset + 3],
+            ]) as usize;
+            offset += 4;
+
+            // Read value
+            if offset + value_len > self.data.len() {
+                return Err(PyRuntimeError::new_err("Invalid data format"));
+            }
+            let value = PyBytes::new_bound(py, &self.data[offset..offset + value_len]);
+            offset += value_len;
+
+            pairs.push((key, value));
+        }
+
+        Ok(pairs)
+    }
+}
+

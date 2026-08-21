@@ -1,0 +1,1633 @@
+//! SQL Execution Pipeline — SQL query execution methods
+
+use crate::engine::Database;
+use crate::sql::StringCaseExt;
+
+use crate::error::{ByteRagError, ByteRagResult};
+use crate::sql::executor::{
+    FilterOperator, HashAggregateOperator, HashJoinOperator, LimitOperator, PhysicalOperator,
+    ProjectionOperator, SortOperator, TableScanOperator,
+};
+use crate::sql::planner::{LogicalPlanner, PhysicalExpr, PhysicalPlan, PhysicalPlanner};
+use crate::storage::columnar_cache::ColumnarCache;
+use arrow::array::RecordBatch;
+use arrow::datatypes::Schema;
+use arrow::ipc::writer::StreamWriter;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+// ════════════════════════════════════════════
+// Arrow IPC Serialization
+// ════════════════════════════════════════════
+
+/// Infer Arrow schema from row values
+fn infer_schema_from_values(values: &[PhysicalExpr]) -> ByteRagResult<Schema> {
+    use crate::storage::columnar::ScalarValue;
+    use arrow::datatypes::{DataType, Field};
+
+    let fields: Vec<Field> = values
+        .iter()
+        .enumerate()
+        .map(|(i, expr)| {
+            let name = format!("col_{}", i);
+            let data_type = match expr {
+                PhysicalExpr::Literal(scalar) => match scalar {
+                    ScalarValue::Int32(_) => DataType::Int32,
+                    ScalarValue::Int64(_) => DataType::Int64,
+                    ScalarValue::Float64(_) => DataType::Float64,
+                    ScalarValue::Utf8(_) => DataType::Utf8,
+                    ScalarValue::Boolean(_) => DataType::Boolean,
+                    ScalarValue::Binary(_) => DataType::Binary,
+                    ScalarValue::Null => DataType::Utf8, // Default to string for nulls
+                },
+                _ => DataType::Utf8, // Fallback to string
+            };
+            Field::new(name, data_type, true) // All fields nullable
+        })
+        .collect();
+
+    Ok(Schema::new(fields))
+}
+
+/// Serialize row values to Arrow IPC format
+fn serialize_to_arrow_ipc(schema: &Schema, row_values: &[PhysicalExpr]) -> ByteRagResult<Vec<u8>> {
+    use crate::storage::columnar::ScalarValue;
+    use arrow::array::*;
+
+    // Build arrays for each field
+    let mut arrays: Vec<ArrayRef> = Vec::new();
+
+    for (field, expr) in schema.fields().iter().zip(row_values) {
+        let array: ArrayRef = match expr {
+            PhysicalExpr::Literal(scalar) => {
+                match (field.data_type(), scalar) {
+                    (arrow::datatypes::DataType::Int32, ScalarValue::Int32(v)) => {
+                        Arc::new(Int32Array::from(vec![*v]))
+                    }
+                    (arrow::datatypes::DataType::Int64, ScalarValue::Int64(v)) => {
+                        Arc::new(Int64Array::from(vec![*v]))
+                    }
+                    // Auto-convert Int32 to Int64
+                    (arrow::datatypes::DataType::Int64, ScalarValue::Int32(v)) => {
+                        Arc::new(Int64Array::from(vec![*v as i64]))
+                    }
+                    (arrow::datatypes::DataType::Float64, ScalarValue::Float64(v)) => {
+                        Arc::new(Float64Array::from(vec![*v]))
+                    }
+                    (arrow::datatypes::DataType::Utf8, ScalarValue::Utf8(s)) => {
+                        Arc::new(StringArray::from(vec![s.as_str()]))
+                    }
+                    (arrow::datatypes::DataType::Boolean, ScalarValue::Boolean(b)) => {
+                        Arc::new(BooleanArray::from(vec![*b]))
+                    }
+                    (arrow::datatypes::DataType::Binary, ScalarValue::Binary(b)) => {
+                        Arc::new(BinaryArray::from(vec![b.as_slice()]))
+                    }
+                    (_, ScalarValue::Null) => {
+                        // Create null array of appropriate type
+                        match field.data_type() {
+                            arrow::datatypes::DataType::Int32 => {
+                                Arc::new(Int32Array::from(vec![None as Option<i32>]))
+                            }
+                            arrow::datatypes::DataType::Int64 => {
+                                Arc::new(Int64Array::from(vec![None as Option<i64>]))
+                            }
+                            arrow::datatypes::DataType::Float64 => {
+                                Arc::new(Float64Array::from(vec![None as Option<f64>]))
+                            }
+                            arrow::datatypes::DataType::Utf8 => {
+                                Arc::new(StringArray::from(vec![None as Option<&str>]))
+                            }
+                            arrow::datatypes::DataType::Boolean => {
+                                Arc::new(BooleanArray::from(vec![None as Option<bool>]))
+                            }
+                            arrow::datatypes::DataType::Binary => {
+                                Arc::new(BinaryArray::from(vec![None as Option<&[u8]>]))
+                            }
+                            _ => {
+                                return Err(ByteRagError::NotImplemented(format!(
+                                    "Unsupported null type: {:?}",
+                                    field.data_type()
+                                )));
+                            }
+                        }
+                    }
+                    _ => {
+                        return Err(ByteRagError::NotImplemented(format!(
+                            "Type mismatch: field {:?} vs scalar {:?}",
+                            field.data_type(),
+                            scalar
+                        )));
+                    }
+                }
+            }
+            _ => {
+                return Err(ByteRagError::NotImplemented(
+                    "Non-literal value in INSERT".to_string(),
+                ));
+            }
+        };
+        arrays.push(array);
+    }
+
+    // Create RecordBatch
+    let batch = RecordBatch::try_new(Arc::new(schema.clone()), arrays)
+        .map_err(|e| ByteRagError::Storage(e.to_string()))?;
+
+    // Serialize to Arrow IPC Stream format
+    let mut buffer = Vec::new();
+    {
+        let mut writer = StreamWriter::try_new(&mut buffer, schema)
+            .map_err(|e| ByteRagError::Serialization(e.to_string()))?;
+        writer
+            .write(&batch)
+            .map_err(|e| ByteRagError::Serialization(e.to_string()))?;
+        writer
+            .finish()
+            .map_err(|e| ByteRagError::Serialization(e.to_string()))?;
+    }
+
+    Ok(buffer)
+}
+
+// ════════════════════════════════════════════
+// Helper Functions for WHERE Clause Evaluation
+// ════════════════════════════════════════════
+
+/// Reconstruct a full record by prepending the key (col 0) to the stored value JSON.
+/// INSERT stores `row_values[1..]` as JSON, excluding the key column.
+/// This function re-adds the key as the first element so that schema column indices
+/// align correctly with the data during filter evaluation.
+fn reconstruct_full_record(key: &[u8], value_bytes: &[u8]) -> Vec<u8> {
+    // Try to interpret the key as an integer (le_bytes from INSERT)
+    let key_json = if key.len() == 4 {
+        let val = i32::from_le_bytes(key.try_into().unwrap_or([0; 4]));
+        serde_json::Value::Number(val.into())
+    } else if key.len() == 8 {
+        let val = i64::from_le_bytes(key.try_into().unwrap_or([0; 8]));
+        serde_json::Value::Number(val.into())
+    } else {
+        // Treat as UTF-8 string key
+        let s = String::from_utf8_lossy(key).to_string();
+        serde_json::Value::String(s)
+    };
+
+    // Parse existing values and prepend key
+    let mut values: Vec<serde_json::Value> =
+        serde_json::from_slice(value_bytes).unwrap_or_else(|_| vec![]);
+    values.insert(0, key_json);
+    serde_json::to_vec(&values).unwrap_or_else(|_| value_bytes.to_vec())
+}
+
+/// Convert a single JSON record to a RecordBatch for filter evaluation
+pub fn json_record_to_batch(value_bytes: &[u8]) -> ByteRagResult<RecordBatch> {
+    use arrow::array::{ArrayRef, BooleanArray, Float64Array, Int64Array, StringArray};
+    use arrow::datatypes::{DataType, Field, Schema};
+
+    let current_values: Vec<serde_json::Value> =
+        serde_json::from_slice(value_bytes).unwrap_or_else(|_| vec![]);
+
+    let mut fields = Vec::new();
+    let mut columns: Vec<ArrayRef> = Vec::new();
+
+    for (i, val) in current_values.iter().enumerate() {
+        match val {
+            serde_json::Value::Number(n) => {
+                if n.is_i64() {
+                    fields.push(Field::new(format!("col_{}", i), DataType::Int64, true));
+                    columns.push(Arc::new(Int64Array::from(vec![n.as_i64()])));
+                } else if n.is_f64() {
+                    fields.push(Field::new(format!("col_{}", i), DataType::Float64, true));
+                    columns.push(Arc::new(Float64Array::from(vec![n.as_f64()])));
+                } else {
+                    fields.push(Field::new(format!("col_{}", i), DataType::Int64, true));
+                    columns.push(Arc::new(Int64Array::from(vec![n.as_i64()])));
+                }
+            }
+            serde_json::Value::String(s) => {
+                fields.push(Field::new(format!("col_{}", i), DataType::Utf8, true));
+                columns.push(Arc::new(StringArray::from(vec![Some(s.as_str())])));
+            }
+            serde_json::Value::Bool(b) => {
+                fields.push(Field::new(format!("col_{}", i), DataType::Boolean, true));
+                columns.push(Arc::new(BooleanArray::from(vec![Some(*b)])));
+            }
+            serde_json::Value::Null => {
+                fields.push(Field::new(format!("col_{}", i), DataType::Int64, true));
+                columns.push(Arc::new(Int64Array::from(vec![None::<i64>])));
+            }
+            _ => {
+                fields.push(Field::new(format!("col_{}", i), DataType::Int64, true));
+                columns.push(Arc::new(Int64Array::from(vec![None::<i64>])));
+            }
+        }
+    }
+
+    let schema = Arc::new(Schema::new(fields));
+    RecordBatch::try_new(schema, columns).map_err(ByteRagError::from)
+}
+
+/// Evaluate a filter expression for a single record
+/// Returns true if the record matches the filter (or if no filter is provided)
+fn evaluate_filter_for_record(
+    filter_expr: Option<&PhysicalExpr>,
+    value_bytes: &[u8],
+) -> ByteRagResult<bool> {
+    if let Some(expr) = filter_expr {
+        let batch = json_record_to_batch(value_bytes)?;
+
+        use crate::sql::executor::evaluate_expr;
+        let result = evaluate_expr(expr, &batch)?;
+
+        use arrow::array::BooleanArray;
+        let bool_array = result
+            .as_any()
+            .downcast_ref::<BooleanArray>()
+            .ok_or_else(|| ByteRagError::TypeMismatch {
+                expected: "BooleanArray".to_string(),
+                actual: format!("{:?}", result.data_type()),
+            })?;
+
+        Ok(bool_array.value(0))
+    } else {
+        Ok(true) // No filter, all records match
+    }
+}
+
+impl Database {
+    // ════════════════════════════════════════════
+    // Phase 3: 파티셔닝 (Partition Pruning Helper)
+    // ════════════════════════════════════════════
+
+    /// 파티셔닝 라우팅 리스트를 가져옵니다.
+    /// 조건이 없으면 모든 파티션을 스캔, 조건이 있으면 (향후) 필요한 파티션만 스캔합니다.
+    pub(crate) fn get_tables_to_scan(
+        &self,
+        table: &str,
+        _filter: Option<&PhysicalExpr>,
+    ) -> Vec<String> {
+        let maps = self.partition_maps.read().unwrap();
+        if let Some(map) = maps.get(table) {
+            // MVP: 조건절을 분석하여 특정 파티션만 추출하는 프루닝 로직 대신 전체 파티션을 반환.
+            // TODO: Extract PartitionValue from _filter and prune.
+            map.all_partitions()
+        } else {
+            // 파티션 매핑이 없으면 셔딩 라우터에 쓰인 모든 샤드 가상 테이블을 조회
+            // ════════════════════════════════════════════
+            // Phase 6: Sharding Scatter Read (Scatter-Gather)
+            // ════════════════════════════════════════════
+            self.sharding_router
+                .all_shards()
+                .iter()
+                .map(|shard| format!("{}__shard_{}", table, shard.id))
+                .collect()
+        }
+    }
+
+    // ════════════════════════════════════════════
+    // SQL Execution Pipeline
+    // ════════════════════════════════════════════
+
+    /// Register table data for SQL queries.
+    ///
+    /// Tables registered here can be queried via `execute_sql()`.
+    pub fn register_table(&self, name: &str, batches: Vec<RecordBatch>) {
+        // Store schema from first batch
+        if let Some(first_batch) = batches.first() {
+            let schema = first_batch.schema();
+            let mut schemas = self.table_schemas.write().unwrap();
+            schemas.insert(name.to_string(), schema);
+        }
+
+        // Store batches
+        let mut tables = self.tables.write().unwrap();
+        tables.insert(name.to_string(), batches);
+    }
+
+    /// Append a RecordBatch to an existing registered table.
+    pub fn append_batch(&self, table: &str, batch: RecordBatch) {
+        let mut tables = self.tables.write().unwrap();
+        tables.entry(table.to_string()).or_default().push(batch);
+    }
+
+    /// Execute a SQL query and return RecordBatch results.
+    ///
+    /// Full pipeline: Parse → LogicalPlan → Optimize → PhysicalPlan → Execute
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use byterag_core::Database;
+    /// # fn main() -> byterag_core::ByteRagResult<()> {
+    /// let db = Database::open_in_memory()?;
+    /// // Register table data first, then:
+    /// // let batches = db.execute_sql("SELECT * FROM users WHERE age > 18")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn execute_sql(&self, sql: &str) -> ByteRagResult<Vec<RecordBatch>> {
+        let t0 = std::time::Instant::now();
+
+        // Step 0: Intercept CREATE VIEW / DROP VIEW (before parser)
+        let sql_trimmed = sql.trim();
+
+        if sql_trimmed.starts_with_ignore_ascii_case("CREATE VIEW") {
+            return self.handle_create_view(sql_trimmed);
+        }
+        if sql_trimmed.starts_with_ignore_ascii_case("DROP VIEW") {
+            return self.handle_drop_view(sql_trimmed);
+        }
+
+        // Materialized View 인터셀트 (CREATE/DROP/REFRESH)
+        if sql_trimmed.starts_with_ignore_ascii_case("CREATE MATERIALIZED VIEW") {
+            return self.handle_create_materialized_view(sql_trimmed);
+        }
+        if sql_trimmed.starts_with_ignore_ascii_case("DROP MATERIALIZED VIEW") {
+            return self.handle_drop_materialized_view(sql_trimmed);
+        }
+        if sql_trimmed.starts_with_ignore_ascii_case("REFRESH MATERIALIZED VIEW") {
+            return self.handle_refresh_materialized_view(sql_trimmed);
+        }
+
+        // SELECT 시 Materialized View 캐시 히트 확인
+        if sql_trimmed.starts_with_ignore_ascii_case("SELECT")
+            && let Some(cached) = self.try_matview_cache(sql_trimmed)
+        {
+            return Ok(cached);
+        }
+
+        // Step 0b: Expand views in FROM clauses
+        let expanded = self.view_registry.expand(sql_trimmed);
+        let sql = expanded.as_str();
+
+        // Step 1: Parse SQL → AST
+        let statements = self.sql_parser.parse(sql)?;
+        if statements.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Step 2: Logical Plan
+        let planner = LogicalPlanner::new();
+        let logical_plan = planner.plan(&statements[0])?;
+
+        // Step 3: Optimize
+        let optimized = self.sql_optimizer.optimize(logical_plan)?;
+
+        // Step 4: Physical Plan
+        let physical_planner = PhysicalPlanner::new(Arc::clone(&self.table_schemas));
+        let physical_plan = physical_planner.plan(&optimized)?;
+
+        // Step 5: Execute
+        let result = self.execute_physical_plan(&physical_plan);
+
+        // ── Metrics ─────────────────────────────────────────────────
+        let elapsed_us = t0.elapsed().as_micros() as u64;
+        self.metrics.inc_sql_queries();
+        self.metrics.query_latency_us.observe(elapsed_us);
+
+        result
+    }
+
+    /// CREATE VIEW handler
+    fn handle_create_view(&self, sql: &str) -> ByteRagResult<Vec<RecordBatch>> {
+        // Syntax: CREATE VIEW <name> AS <select_sql>
+        let upper = sql.to_uppercase();
+        let after_view = &sql[upper.find("VIEW").unwrap() + 4..]
+            .trim_start()
+            .to_owned();
+        let as_pos = after_view
+            .to_uppercase()
+            .find(" AS ")
+            .ok_or_else(|| ByteRagError::SqlParse {
+                message: "CREATE VIEW requires AS".to_string(),
+                sql: sql.to_string(),
+            })?;
+        let view_name = after_view[..as_pos].trim();
+        let view_sql = after_view[as_pos + 4..].trim();
+        self.view_registry.create(view_name, view_sql)?;
+        self.one_row_affected_batch()
+    }
+
+    /// DROP VIEW handler
+    fn handle_drop_view(&self, sql: &str) -> ByteRagResult<Vec<RecordBatch>> {
+        // Syntax: DROP VIEW [IF EXISTS] <name>
+        let upper = sql.to_uppercase();
+        let after_view = sql[upper.find("VIEW").unwrap() + 4..]
+            .trim_start()
+            .to_owned();
+        let (if_exists, name_part) = if after_view.starts_with_ignore_ascii_case("IF EXISTS") {
+            (true, after_view[9..].trim_start().to_string())
+        } else {
+            (false, after_view.clone())
+        };
+        let view_name = name_part.trim();
+
+        if if_exists && !self.view_registry.exists(view_name) {
+            return self.one_row_affected_batch();
+        }
+
+        self.view_registry.drop(view_name)?;
+        self.one_row_affected_batch()
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Materialized View Handlers
+    // ────────────────────────────────────────────────────────────────────────
+
+    /// CREATE MATERIALIZED VIEW <name> [REFRESH EVERY <secs>] AS <select_sql>
+    fn handle_create_materialized_view(&self, sql: &str) -> ByteRagResult<Vec<RecordBatch>> {
+        let upper = sql.to_uppercase();
+
+        // 뷰 이름 / SQL 추출 (VIEW 키워드 이후)
+        let after_view = sql[upper.find("VIEW").unwrap() + 4..]
+            .trim_start()
+            .to_owned();
+        let after_upper = after_view.to_uppercase();
+
+        // "REFRESH EVERY <n> AS ..." 패턴 감지 (선택적)
+        let (refresh_interval_secs, body) = if let Some(re_pos) = after_upper.find("REFRESH EVERY")
+        {
+            // 이름은 REFRESH EVERY 이전
+            let name_part = after_view[..re_pos].trim().to_string();
+            let rest = after_view[re_pos + 13..].trim_start().to_string();
+            let as_pos = rest
+                .to_uppercase()
+                .find(" AS ")
+                .ok_or_else(|| ByteRagError::SqlParse {
+                    message: "CREATE MATERIALIZED VIEW ... REFRESH EVERY <n> AS <sql>".to_string(),
+                    sql: sql.to_string(),
+                })?;
+            let interval_str = rest[..as_pos].trim();
+            let interval_secs: u64 = interval_str.parse().map_err(|_| ByteRagError::SqlParse {
+                message: format!(
+                    "REFRESH EVERY requires integer seconds, got '{}'",
+                    interval_str
+                ),
+                sql: sql.to_string(),
+            })?;
+            let view_sql = rest[as_pos + 4..].trim().to_string();
+            (Some(interval_secs), (name_part, view_sql))
+        } else {
+            let as_pos = after_upper.find(" AS ").ok_or_else(|| ByteRagError::SqlParse {
+                message: "CREATE MATERIALIZED VIEW requires AS".to_string(),
+                sql: sql.to_string(),
+            })?;
+            let name = after_view[..as_pos].trim().to_string();
+            let view_sql = after_view[as_pos + 4..].trim().to_string();
+            (None, (name, view_sql))
+        };
+
+        self.mat_view_registry
+            .create(&body.0, &body.1, refresh_interval_secs)?;
+        self.one_row_affected_batch()
+    }
+
+    /// DROP MATERIALIZED VIEW <name>
+    fn handle_drop_materialized_view(&self, sql: &str) -> ByteRagResult<Vec<RecordBatch>> {
+        let upper = sql.to_uppercase();
+        let name = sql[upper.find("VIEW").unwrap() + 4..].trim();
+        self.mat_view_registry.remove(name)?;
+        self.one_row_affected_batch()
+    }
+
+    /// REFRESH MATERIALIZED VIEW <name>
+    fn handle_refresh_materialized_view(&self, sql: &str) -> ByteRagResult<Vec<RecordBatch>> {
+        let upper = sql.to_uppercase();
+        let name = sql[upper.find("VIEW").unwrap() + 4..].trim().to_lowercase();
+        let view_sql = self.mat_view_registry.get_sql(&name).ok_or_else(|| {
+            ByteRagError::InvalidArguments(format!("'{}' 구체화된 뷰를 찾을 수 없음", name))
+        })?;
+        // 뷰 쿼리 실행 후 캐시 저장
+        let batches = self.execute_sql(&view_sql)?;
+        self.mat_view_registry.set_cache(&name, batches)?;
+        self.one_row_affected_batch()
+    }
+
+    /// SELECT 쿼리에서 Materialized View 캐시 히트 확인
+    ///
+    /// "SELECT ... FROM <mv_name>" 패턴에서 FROM 다음 토큰이 등록된 MV이고
+    /// 캐시가 fresh하면 캐시를 반환합니다.
+    fn try_matview_cache(&self, sql: &str) -> Option<Vec<RecordBatch>> {
+        let upper = sql.to_uppercase();
+        let from_pos = upper.find(" FROM ")?;
+        let after_from = sql[from_pos + 6..].trim();
+        // 첫 번째 토큰 (공백/세미콜론/닫는 괄호 기준)
+        let name = after_from
+            .split(|c: char| c.is_whitespace() || c == ';' || c == ')')
+            .next()?;
+        if self.mat_view_registry.is_fresh(name) {
+            self.mat_view_registry.get_cache(name)
+        } else {
+            None
+        }
+    }
+
+    /// Helper: single-row `rows_affected = 1` result batch
+    fn one_row_affected_batch(&self) -> ByteRagResult<Vec<RecordBatch>> {
+        use arrow::array::Int64Array;
+        use arrow::datatypes::{DataType, Field, Schema};
+        let schema = Arc::new(Schema::new(vec![Field::new(
+            "rows_affected",
+            DataType::Int64,
+            false,
+        )]));
+        let array = Int64Array::from(vec![1_i64]);
+        let batch = RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+        Ok(vec![batch])
+    }
+
+    /// Execute a physical plan against registered table data.
+    fn execute_physical_plan(&self, plan: &PhysicalPlan) -> ByteRagResult<Vec<RecordBatch>> {
+        match plan {
+            PhysicalPlan::Insert {
+                table,
+                columns: _,
+                values,
+            } => {
+                // Track OLTP Workload
+                self.workload_analyzer
+                    .write()
+                    .unwrap()
+                    .record(crate::engine::workload_analyzer::QueryPattern::PointQuery);
+
+                // Execute INSERT: convert PhysicalExpr values to bytes and insert into Delta Store
+                let mut rows_inserted = 0;
+
+                for row_values in values {
+                    // For simplicity, use first column as key, rest as value
+                    // TODO: Proper schema-based serialization
+                    if row_values.is_empty() {
+                        continue;
+                    }
+
+                    // Extract key from first value
+                    let key = match &row_values[0] {
+                        PhysicalExpr::Literal(scalar) => {
+                            use crate::storage::columnar::ScalarValue;
+                            match scalar {
+                                ScalarValue::Utf8(s) => s.as_bytes().to_vec(),
+                                ScalarValue::Int32(i) => i.to_le_bytes().to_vec(),
+                                ScalarValue::Int64(i) => i.to_le_bytes().to_vec(),
+                                ScalarValue::Float64(f) => f.to_le_bytes().to_vec(),
+                                ScalarValue::Boolean(b) => vec![if *b { 1 } else { 0 }],
+                                // The following cases are not expected here, but are added as per instruction
+                                // They would typically be handled in a `build_operator` method or similar
+                                // where DDL/DML plans are distinguished from query plans.
+                                // For now, we'll place them here as a placeholder for the instruction.
+                                _ => {
+                                    return Err(ByteRagError::NotImplemented(
+                                        "Non-literal key in INSERT".to_string(),
+                                    ));
+                                }
+                            }
+                        }
+                        _ => {
+                            return Err(ByteRagError::NotImplemented(
+                                "Non-literal key in INSERT".to_string(),
+                            ));
+                        }
+                    };
+
+                    // Get or infer schema for Arrow IPC serialization
+                    let schema = {
+                        let schemas = self.table_schemas.read().unwrap();
+                        schemas.get(table.as_str()).cloned()
+                    }
+                    .unwrap_or_else(|| {
+                        // No registered schema: infer from row values
+                        Arc::new(
+                            infer_schema_from_values(row_values)
+                                .expect("Failed to infer schema from values"),
+                        )
+                    });
+
+                    // Always use Arrow IPC serialization
+                    let value_bytes = serialize_to_arrow_ipc(&schema, row_values)?;
+
+                    // ════════════════════════════════════════════
+                    // Phase 6: Sharding Scatter Write
+                    // ════════════════════════════════════════════
+                    self.scatter_gather.scatter_write(
+                        &key,
+                        &value_bytes,
+                        |shard_id, sub_key, sub_val| {
+                            let shard_table = format!("{}__shard_{}", table, shard_id);
+                            // Write to the specific shard virtual table (which will then be partitioned by crud.rs if PartitionMap exists)
+                            let _ = self.insert(&shard_table, sub_key, sub_val);
+                        },
+                    );
+
+                    rows_inserted += 1;
+                }
+
+                // Return result batch indicating success
+                use arrow::array::{Int64Array, RecordBatch};
+                use arrow::datatypes::{DataType, Field, Schema};
+
+                let schema = Arc::new(Schema::new(vec![Field::new(
+                    "rows_inserted",
+                    DataType::Int64,
+                    false,
+                )]));
+                let array = Int64Array::from(vec![rows_inserted as i64]);
+                let batch =
+                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+
+                Ok(vec![batch])
+            }
+            PhysicalPlan::Update {
+                table,
+                assignments,
+                filter,
+            } => {
+                // Track OLTP Workload
+                self.workload_analyzer
+                    .write()
+                    .unwrap()
+                    .record(crate::engine::workload_analyzer::QueryPattern::PointQuery);
+
+                // Execute UPDATE: scan (across partitions), evaluate filter, update matching records
+                let target_tables = self.get_tables_to_scan(table, filter.as_ref());
+                let mut all_records = Vec::new();
+                for target_table in &target_tables {
+                    all_records.extend(self.scan(target_table)?);
+                }
+
+                let mut rows_updated = 0_i64;
+
+                // Build column name → index mapping from schema
+                let column_index_map = {
+                    let schemas = self.table_schemas.read().unwrap();
+                    schemas.get(table.as_str()).map(|schema| {
+                        schema
+                            .fields()
+                            .iter()
+                            .enumerate()
+                            .map(|(i, field)| (field.name().clone(), i))
+                            .collect::<std::collections::HashMap<String, usize>>()
+                    })
+                };
+
+                for (key, value_bytes) in all_records {
+                    // Reconstruct full record: prepend key (col 0) to value
+                    // INSERT stores row_values[1..] as JSON, so key must be re-added
+                    let full_record = reconstruct_full_record(&key, &value_bytes);
+                    let should_update = evaluate_filter_for_record(filter.as_ref(), &full_record)?;
+
+                    if should_update {
+                        let mut current_values: Vec<serde_json::Value> =
+                            serde_json::from_slice(&full_record).unwrap_or_else(|_| vec![]);
+
+                        // Apply assignments using schema-based column mapping
+                        for (column_name, expr) in assignments.iter() {
+                            let target_idx = column_index_map
+                                .as_ref()
+                                .and_then(|map| map.get(column_name).copied())
+                                .unwrap_or_else(|| {
+                                    // Fallback: linear search by position
+                                    assignments
+                                        .iter()
+                                        .position(|(n, _)| n == column_name)
+                                        .unwrap_or(0)
+                                });
+
+                            if let PhysicalExpr::Literal(scalar) = expr {
+                                use crate::storage::columnar::ScalarValue;
+                                let new_value = match scalar {
+                                    ScalarValue::Utf8(s) => serde_json::Value::String(s.clone()),
+                                    ScalarValue::Int32(v) => serde_json::Value::Number((*v).into()),
+                                    ScalarValue::Int64(v) => serde_json::Value::Number((*v).into()),
+                                    ScalarValue::Float64(f) => serde_json::Number::from_f64(*f)
+                                        .map(serde_json::Value::Number)
+                                        .unwrap_or(serde_json::Value::Null),
+                                    ScalarValue::Boolean(b) => serde_json::Value::Bool(*b),
+                                    ScalarValue::Binary(b) => {
+                                        // Encode binary as base64 string
+                                        serde_json::Value::String(base64::Engine::encode(
+                                            &base64::engine::general_purpose::STANDARD,
+                                            b,
+                                        ))
+                                    }
+                                    ScalarValue::Null => serde_json::Value::Null,
+                                };
+
+                                if target_idx < current_values.len() {
+                                    current_values[target_idx] = new_value;
+                                }
+                            }
+                        }
+
+                        // Remove key (col 0) before serializing back to storage
+                        let storage_values = if current_values.len() > 1 {
+                            &current_values[1..]
+                        } else {
+                            &current_values[..]
+                        };
+                        let new_value_bytes = serde_json::to_vec(storage_values)
+                            .map_err(|e| ByteRagError::Serialization(e.to_string()))?;
+
+                        self.insert(table, &key, &new_value_bytes)?;
+                        rows_updated += 1;
+                    }
+                }
+
+                // Return result batch
+                use arrow::array::{Int64Array, RecordBatch};
+                use arrow::datatypes::{DataType, Field, Schema};
+
+                let schema = Arc::new(Schema::new(vec![Field::new(
+                    "rows_updated",
+                    DataType::Int64,
+                    false,
+                )]));
+                let array = Int64Array::from(vec![rows_updated]);
+                let batch =
+                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+
+                Ok(vec![batch])
+            }
+            PhysicalPlan::Delete { table, filter } => {
+                // Track OLTP Workload
+                self.workload_analyzer
+                    .write()
+                    .unwrap()
+                    .record(crate::engine::workload_analyzer::QueryPattern::PointQuery);
+
+                // Execute DELETE: scan table (across partitions), evaluate filter, delete matching records
+
+                // Step 1: Scan all records from the target partition(s)
+                let target_tables = self.get_tables_to_scan(table, filter.as_ref());
+                let mut all_records = Vec::new();
+                for target_table in &target_tables {
+                    all_records.extend(self.scan(target_table)?);
+                }
+
+                let mut rows_deleted = 0_i64;
+
+                // Step 2: Process each record
+                for (key, value_bytes) in all_records {
+                    // Reconstruct full record: prepend key (col 0) to value
+                    let full_record = reconstruct_full_record(&key, &value_bytes);
+                    let should_delete = evaluate_filter_for_record(filter.as_ref(), &full_record)?;
+
+                    if should_delete {
+                        // Delete from Delta Store
+                        self.delete(table, &key)?;
+                        rows_deleted += 1;
+                    }
+                }
+
+                // Return result batch
+                use arrow::array::{Int64Array, RecordBatch};
+                use arrow::datatypes::{DataType, Field, Schema};
+
+                let schema = Arc::new(Schema::new(vec![Field::new(
+                    "rows_deleted",
+                    DataType::Int64,
+                    false,
+                )]));
+                let array = Int64Array::from(vec![rows_deleted]);
+                let batch =
+                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+
+                Ok(vec![batch])
+            }
+            PhysicalPlan::DropTable { table, if_exists } => {
+                // DROP TABLE implementation
+                use arrow::array::{Int64Array, RecordBatch};
+                use arrow::datatypes::{DataType, Field, Schema};
+
+                // Check if table exists
+                let exists = self.table_schemas.read().unwrap().contains_key(table);
+
+                if !exists && !if_exists {
+                    return Err(ByteRagError::TableNotFound(table.clone()));
+                }
+
+                if exists {
+                    // Remove table schema from memory
+                    self.table_schemas.write().unwrap().remove(table);
+
+                    // Delete schema from persistent storage
+                    self.wos_for_metadata().delete_schema_metadata(table)?;
+
+                    // Note: Data deletion from Delta Store/WOS would require
+                    // scanning and deleting all keys with table prefix
+                    // For now, we just remove the schema metadata
+                }
+
+                // Return success
+                let schema = Arc::new(Schema::new(vec![Field::new(
+                    "rows_affected",
+                    DataType::Int64,
+                    false,
+                )]));
+                let array = Int64Array::from(vec![1]);
+                let batch =
+                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+
+                Ok(vec![batch])
+            }
+            PhysicalPlan::CreateTable {
+                table,
+                columns,
+                if_not_exists,
+                policy,
+            } => {
+                // CREATE TABLE implementation
+                use arrow::array::{Int64Array, RecordBatch};
+                use arrow::datatypes::{DataType, Field, Schema};
+
+                // Check if table already exists
+                let exists = self.table_schemas.read().unwrap().contains_key(table);
+
+                if exists && !if_not_exists {
+                    return Err(ByteRagError::Schema(format!(
+                        "Table '{}' already exists",
+                        table
+                    )));
+                }
+
+                if !exists {
+                    // Create Arrow schema from column definitions
+                    let fields: Vec<Field> = columns
+                        .iter()
+                        .map(|(name, type_str)| {
+                            let data_type = match type_str.to_uppercase().as_str() {
+                                "INT" | "INTEGER" => DataType::Int64,
+                                "TEXT" | "STRING" | "VARCHAR" => DataType::Utf8,
+                                "FLOAT" | "DOUBLE" => DataType::Float64,
+                                "BOOL" | "BOOLEAN" => DataType::Boolean,
+                                _ => DataType::Utf8, // Default to string
+                            };
+                            Field::new(name, data_type, true)
+                        })
+                        .collect();
+
+                    let mut schema = Schema::new(fields);
+
+                    // IF Policy exists, embed as JSON into Arrow schema metadata
+                    if let Some(p) = policy
+                        && let Ok(json) = p.to_json()
+                    {
+                        let mut map = std::collections::HashMap::new();
+                        map.insert("byterag_table_policy".to_string(), json);
+                        schema = schema.with_metadata(map);
+                    }
+
+                    let schema = Arc::new(schema);
+
+                    // Store schema in memory
+                    self.table_schemas
+                        .write()
+                        .unwrap()
+                        .insert(table.clone(), schema.clone());
+
+                    // Persist schema to storage
+                    self.wos_for_metadata()
+                        .save_schema_metadata(table, &schema)?;
+                }
+
+                // Return success
+                let schema = Arc::new(Schema::new(vec![Field::new(
+                    "rows_affected",
+                    DataType::Int64,
+                    false,
+                )]));
+                let array = Int64Array::from(vec![1]);
+                let batch =
+                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+
+                Ok(vec![batch])
+            }
+            PhysicalPlan::CreateIndex {
+                table,
+                index_name,
+                columns,
+                if_not_exists,
+            } => {
+                use arrow::array::{Int64Array, RecordBatch};
+                use arrow::datatypes::{DataType, Field, Schema};
+
+                // Validate: target table must exist
+                {
+                    let schemas = self.table_schemas.read().unwrap();
+                    if !schemas.contains_key(table.as_str()) {
+                        return Err(ByteRagError::Schema(format!(
+                            "Table '{}' does not exist",
+                            table
+                        )));
+                    }
+                }
+
+                let column = columns.first().ok_or_else(|| {
+                    ByteRagError::Schema("CREATE INDEX requires at least one column".to_string())
+                })?;
+
+                let exists = self.index.has_index(table, column);
+
+                if exists && !if_not_exists {
+                    return Err(ByteRagError::IndexAlreadyExists {
+                        table: table.clone(),
+                        column: column.clone(),
+                    });
+                }
+
+                if !exists {
+                    self.index.create_index(table, column)?;
+
+                    // Register index_name → (table, column) mapping in memory
+                    self.index_registry
+                        .write()
+                        .unwrap()
+                        .insert(index_name.clone(), (table.clone(), column.clone()));
+
+                    // Persist index metadata to storage
+                    self.wos_for_metadata()
+                        .save_index_metadata(index_name, table, column)?;
+                }
+
+                let schema = Arc::new(Schema::new(vec![Field::new(
+                    "rows_affected",
+                    DataType::Int64,
+                    false,
+                )]));
+                let array = Int64Array::from(vec![1]);
+                let batch =
+                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+
+                Ok(vec![batch])
+            }
+            PhysicalPlan::DropIndex {
+                table,
+                index_name,
+                if_exists,
+            } => {
+                use arrow::array::{Int64Array, RecordBatch};
+                use arrow::datatypes::{DataType, Field, Schema};
+
+                // Resolve index_name → actual column via registry
+                let resolved_column = {
+                    let registry = self.index_registry.read().unwrap();
+                    registry
+                        .get(index_name.as_str())
+                        .map(|(_, col)| col.clone())
+                };
+
+                // Fallback: if not in registry, try index_name as column name
+                let column = resolved_column.as_deref().unwrap_or(index_name.as_str());
+
+                let exists = self.index.has_index(table, column);
+
+                if !exists && !if_exists {
+                    return Err(ByteRagError::IndexNotFound {
+                        table: table.clone(),
+                        column: column.to_string(),
+                    });
+                }
+
+                if exists {
+                    self.index.drop_index(table, column)?;
+
+                    // Remove from registry in memory
+                    self.index_registry
+                        .write()
+                        .unwrap()
+                        .remove(index_name.as_str());
+
+                    // Delete index metadata from storage
+                    self.wos_for_metadata().delete_index_metadata(index_name)?;
+                }
+
+                let schema = Arc::new(Schema::new(vec![Field::new(
+                    "rows_affected",
+                    DataType::Int64,
+                    false,
+                )]));
+                let array = Int64Array::from(vec![1]);
+                let batch =
+                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+
+                Ok(vec![batch])
+            }
+            PhysicalPlan::AlterTable { table, operation } => {
+                // ALTER TABLE implementation
+                use crate::sql::planner::types::AlterTableOperation;
+                use arrow::array::{Int64Array, RecordBatch};
+                use arrow::datatypes::{DataType, Field, Schema};
+
+                match operation {
+                    AlterTableOperation::AddColumn {
+                        column_name,
+                        data_type,
+                    } => {
+                        // Get current schema
+                        let mut schemas = self.table_schemas.write().unwrap();
+                        let current_schema = schemas.get(table).ok_or_else(|| {
+                            ByteRagError::Schema(format!("Table '{}' not found", table))
+                        })?;
+
+                        // Convert data type string to Arrow DataType
+                        let arrow_type = match data_type.to_uppercase().as_str() {
+                            "INT" | "INTEGER" => DataType::Int64,
+                            "TEXT" | "VARCHAR" | "STRING" => DataType::Utf8,
+                            "FLOAT" | "DOUBLE" | "REAL" => DataType::Float64,
+                            "BOOL" | "BOOLEAN" => DataType::Boolean,
+                            _ => DataType::Utf8, // Default to string
+                        };
+
+                        // Create new field
+                        let new_field = Field::new(column_name, arrow_type, true);
+
+                        // Create new schema with added column
+                        let mut fields: Vec<Field> = current_schema
+                            .fields()
+                            .iter()
+                            .map(|f| f.as_ref().clone())
+                            .collect();
+                        fields.push(new_field);
+                        let new_schema = Arc::new(Schema::new(fields));
+
+                        // Update schema in memory
+                        schemas.insert(table.clone(), new_schema.clone());
+
+                        // Persist updated schema
+                        drop(schemas); // Release lock before calling wos
+                        self.wos_for_metadata()
+                            .save_schema_metadata(table, &new_schema)?;
+                    }
+                    AlterTableOperation::DropColumn { column_name } => {
+                        // Get current schema
+                        let mut schemas = self.table_schemas.write().unwrap();
+                        let current_schema = schemas.get(table).ok_or_else(|| {
+                            ByteRagError::Schema(format!("Table '{}' not found", table))
+                        })?;
+
+                        // Find the column to drop
+                        let fields: Vec<Field> = current_schema
+                            .fields()
+                            .iter()
+                            .filter(|f| f.name() != column_name)
+                            .map(|f| f.as_ref().clone())
+                            .collect();
+
+                        // Check if column was found
+                        if fields.len() == current_schema.fields().len() {
+                            return Err(ByteRagError::Schema(format!(
+                                "Column '{}' not found in table '{}'",
+                                column_name, table
+                            )));
+                        }
+
+                        // Create new schema without the dropped column
+                        let new_schema = Arc::new(Schema::new(fields));
+
+                        // Update schema in memory
+                        schemas.insert(table.clone(), new_schema.clone());
+
+                        // Persist updated schema
+                        drop(schemas); // Release lock
+                        self.wos_for_metadata()
+                            .save_schema_metadata(table, &new_schema)?;
+                    }
+                    AlterTableOperation::RenameColumn { old_name, new_name } => {
+                        // Get current schema
+                        let mut schemas = self.table_schemas.write().unwrap();
+                        let current_schema = schemas.get(table).ok_or_else(|| {
+                            ByteRagError::Schema(format!("Table '{}' not found", table))
+                        })?;
+
+                        // Find and rename the column
+                        let mut found = false;
+                        let fields: Vec<Field> = current_schema
+                            .fields()
+                            .iter()
+                            .map(|f| {
+                                if f.name() == old_name {
+                                    found = true;
+                                    Field::new(new_name, f.data_type().clone(), f.is_nullable())
+                                } else {
+                                    f.as_ref().clone()
+                                }
+                            })
+                            .collect();
+
+                        // Check if column was found
+                        if !found {
+                            return Err(ByteRagError::Schema(format!(
+                                "Column '{}' not found in table '{}'",
+                                old_name, table
+                            )));
+                        }
+
+                        // Create new schema with renamed column
+                        let new_schema = Arc::new(Schema::new(fields));
+
+                        // Update schema in memory
+                        schemas.insert(table.clone(), new_schema.clone());
+
+                        // Persist updated schema
+                        drop(schemas); // Release lock
+                        self.wos_for_metadata()
+                            .save_schema_metadata(table, &new_schema)?;
+                    }
+                }
+
+                // Return success
+                let schema = Arc::new(Schema::new(vec![Field::new(
+                    "rows_affected",
+                    DataType::Int64,
+                    false,
+                )]));
+                let array = Int64Array::from(vec![1]);
+                let batch =
+                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+
+                Ok(vec![batch])
+            }
+            _ => {
+                // Original logic for SELECT queries
+                self.execute_select_plan(plan)
+            }
+        }
+    }
+
+    /// Execute SELECT query plans (original logic)
+    fn execute_select_plan(&self, plan: &PhysicalPlan) -> ByteRagResult<Vec<RecordBatch>> {
+        // Automatic Tier Selection & Loading
+        // Ensure all tables involved in the query are synced to Columnar Cache (Tier 2).
+        for table in plan.tables() {
+            let target_tables = self.get_tables_to_scan(&table, None);
+            for t in target_tables {
+                if !self.columnar_cache.has_table(&t) {
+                    let _ = self.sync_columnar_cache(&t);
+                }
+            }
+        }
+
+        let tables = self.tables.read().unwrap();
+        let mut operator = self.build_operator(plan, &tables, &self.columnar_cache)?;
+        Self::drain_operator(&mut *operator)
+    }
+
+    /// Build an operator tree from a physical plan.
+    fn build_operator(
+        &self,
+        plan: &PhysicalPlan,
+        tables: &HashMap<String, Vec<RecordBatch>>,
+        columnar_cache: &ColumnarCache,
+    ) -> ByteRagResult<Box<dyn PhysicalOperator>> {
+        match plan {
+            PhysicalPlan::TableScan {
+                table,
+                projection,
+                filter,
+                ros_files,
+            } => {
+                // Track OLAP Workload
+                self.workload_analyzer
+                    .write()
+                    .unwrap()
+                    .record(crate::engine::workload_analyzer::QueryPattern::RangeScan);
+
+                let mut filter_pushed_down = false;
+                let target_tables = self.get_tables_to_scan(table, filter.as_ref());
+
+                let mut all_batches = Vec::new();
+                let mut base_schema = None;
+
+                for t in target_tables {
+                    // Try Columnar Cache first (with projection AND filter pushdown!)
+                    let cached_results = if let Some(filter_expr) = filter {
+                        let filter_expr_clone = filter_expr.clone();
+                        // Use pushdown with filter
+                        let result = columnar_cache.get_batches_with_filter(
+                            &t,
+                            if projection.is_empty() {
+                                None
+                            } else {
+                                Some(projection)
+                            },
+                            move |batch| {
+                                use crate::sql::executor::evaluate_expr;
+                                use arrow::array::BooleanArray;
+
+                                let array = evaluate_expr(&filter_expr_clone, batch)?;
+                                let boolean_array = array
+                                    .as_any()
+                                    .downcast_ref::<BooleanArray>()
+                                    .ok_or_else(|| ByteRagError::TypeMismatch {
+                                    expected: "BooleanArray".to_string(),
+                                    actual: format!("{:?}", array.data_type()),
+                                })?;
+                                Ok(boolean_array.clone())
+                            },
+                        )?;
+                        if result.is_some() {
+                            filter_pushed_down = true;
+                        }
+                        result
+                    } else {
+                        columnar_cache.get_batches(
+                            &t,
+                            if projection.is_empty() {
+                                None
+                            } else {
+                                Some(projection)
+                            },
+                        )?
+                    };
+
+                    let (batches, schema, _) = if let Some(cached_batches) = cached_results {
+                        if cached_batches.is_empty() {
+                            // Table exists but is empty in cache.
+                            // We need the schema to return an empty scan.
+                            let schema = {
+                                let schemas = self.table_schemas.read().unwrap();
+                                schemas
+                                    .get(table)
+                                    .or_else(|| {
+                                        let table_lower = table.to_lowercase();
+                                        schemas
+                                            .iter()
+                                            .find(|(k, _)| k.to_lowercase() == table_lower)
+                                            .map(|(_, v)| v)
+                                    })
+                                    .cloned()
+                            }
+                            .unwrap_or_else(|| Arc::new(arrow::datatypes::Schema::empty()));
+                            (vec![], schema, projection.clone())
+                        } else {
+                            let schema = cached_batches[0].schema();
+                            (cached_batches, schema, vec![])
+                        }
+                    } else {
+                        // Try cache again
+                        let cached_after_sync = columnar_cache.get_batches(
+                            &t,
+                            if projection.is_empty() {
+                                None
+                            } else {
+                                Some(projection)
+                            },
+                        )?;
+
+                        if let Some(batches) = cached_after_sync {
+                            if !batches.is_empty() {
+                                let schema = batches[0].schema();
+                                (batches, schema, vec![])
+                            } else {
+                                // Table exists but is empty
+                                let schema = {
+                                    let schemas = self.table_schemas.read().unwrap();
+                                    schemas
+                                        .get(table)
+                                        .or_else(|| {
+                                            let table_lower = table.to_lowercase();
+                                            schemas
+                                                .iter()
+                                                .find(|(k, _)| k.to_lowercase() == table_lower)
+                                                .map(|(_, v)| v)
+                                        })
+                                        .cloned()
+                                }
+                                .unwrap_or_else(|| Arc::new(arrow::datatypes::Schema::empty()));
+                                (vec![], schema, projection.clone())
+                            }
+                        } else {
+                            // Not in cache, check HashMap fallback
+                            let batches_opt = tables.get(&t).or_else(|| {
+                                let table_lower = t.to_lowercase();
+                                tables
+                                    .iter()
+                                    .find(|(k, _)| k.to_lowercase() == table_lower)
+                                    .map(|(_, v)| v)
+                            });
+
+                            if let Some(batches) = batches_opt {
+                                if batches.is_empty() {
+                                    let schema = {
+                                        let schemas = self.table_schemas.read().unwrap();
+                                        schemas
+                                            .get(table)
+                                            .or_else(|| {
+                                                let table_lower = table.to_lowercase();
+                                                schemas
+                                                    .iter()
+                                                    .find(|(k, _)| k.to_lowercase() == table_lower)
+                                                    .map(|(_, v)| v)
+                                            })
+                                            .cloned()
+                                    }
+                                    .unwrap_or_else(|| Arc::new(arrow::datatypes::Schema::empty()));
+                                    (vec![], schema, projection.clone())
+                                } else {
+                                    let schema = batches[0].schema();
+                                    (batches.clone(), schema, projection.clone())
+                                }
+                            } else {
+                                // Skip missing sub-table if it has no data yet
+                                let schema = {
+                                    let schemas = self.table_schemas.read().unwrap();
+                                    schemas.get(table).cloned()
+                                }
+                                .unwrap_or_else(|| Arc::new(arrow::datatypes::Schema::empty()));
+                                (vec![], schema, projection.clone())
+                            }
+                        }
+                    };
+
+                    if base_schema.is_none() {
+                        base_schema = Some(schema);
+                    }
+                    all_batches.extend(batches);
+                }
+
+                // ---------------------- PHASE 3: ROS (Parquet) Union (Optimized) ----------------------
+                // [Phase 9] 최적화: 매 쿼리마다 read_dir을 수행하는 대신 PhysicalPlan에 전달된 ros_files 정보를 TableScanOperator가 처리하도록 위임함.
+                // --------------------------------------------------------------------------
+
+                // Use the base schema from the loop, or try to look it up if all partitions were empty
+                let final_schema = base_schema.unwrap_or_else(|| {
+                    let schemas = self.table_schemas.read().unwrap();
+                    schemas
+                        .get(table)
+                        .cloned()
+                        .unwrap_or_else(|| Arc::new(arrow::datatypes::Schema::empty()))
+                });
+
+                let projection_to_use = if projection.is_empty() {
+                    vec![]
+                } else {
+                    projection.clone()
+                };
+                let mut scan =
+                    TableScanOperator::new(table.clone(), final_schema, projection_to_use);
+
+                // ros_files가 채워져 있으면 파이프라인 티어 스캔,
+                // 비어있으면 기존의 all_batches 통째 주입
+                if !ros_files.is_empty() {
+                    scan.start_tier_scan(all_batches, ros_files.clone());
+                } else {
+                    scan.set_data(all_batches);
+                }
+
+                // Wrap with filter if needed AND NOT pushed down
+                if let Some(filter_expr) = filter {
+                    if !filter_pushed_down {
+                        Ok(Box::new(FilterOperator::new(
+                            Box::new(scan),
+                            filter_expr.clone(),
+                        )))
+                    } else {
+                        // Filter already applied in scan (via cache)
+                        Ok(Box::new(scan))
+                    }
+                } else {
+                    Ok(Box::new(scan))
+                }
+            }
+
+            PhysicalPlan::Projection {
+                input,
+                exprs,
+                aliases,
+            } => {
+                let input_op = self.build_operator(input, tables, columnar_cache)?;
+                use arrow::datatypes::Field;
+
+                let input_schema = input_op.schema();
+                let fields: Vec<Field> = exprs
+                    .iter()
+                    .enumerate()
+                    .map(|(i, expr)| {
+                        let data_type = expr.get_type(input_schema);
+                        let field_name = if let Some(Some(alias)) = aliases.get(i) {
+                            alias.clone()
+                        } else {
+                            format!("col_{}", i)
+                        };
+                        Field::new(&field_name, data_type, true)
+                    })
+                    .collect();
+
+                let output_schema = Arc::new(Schema::new(fields));
+                Ok(Box::new(ProjectionOperator::new(
+                    input_op,
+                    output_schema,
+                    exprs.clone(),
+                )))
+            }
+
+            PhysicalPlan::Limit {
+                input,
+                count,
+                offset,
+            } => {
+                let input_op = self.build_operator(input, tables, columnar_cache)?;
+                Ok(Box::new(LimitOperator::new(input_op, *count, *offset)))
+            }
+
+            PhysicalPlan::SortMerge { input, order_by } => {
+                let input_op = self.build_operator(input, tables, columnar_cache)?;
+                Ok(Box::new(SortOperator::new(input_op, order_by.clone())))
+            }
+
+            PhysicalPlan::HashAggregate {
+                input,
+                group_by,
+                aggregates,
+                mode,
+            } => {
+                // Track OLAP Workload
+                self.workload_analyzer
+                    .write()
+                    .unwrap()
+                    .record(crate::engine::workload_analyzer::QueryPattern::Aggregation);
+
+                let input_op = self.build_operator(input, tables, columnar_cache)?;
+                let input_schema = input_op.schema();
+                let mut fields = Vec::new();
+
+                for &idx in group_by {
+                    fields.push(input_schema.field(idx).clone());
+                }
+
+                for agg in aggregates {
+                    use arrow::datatypes::DataType;
+                    let data_type = match agg.function {
+                        crate::sql::planner::AggregateFunction::Count => DataType::Int64,
+                        crate::sql::planner::AggregateFunction::Sum
+                        | crate::sql::planner::AggregateFunction::Avg
+                        | crate::sql::planner::AggregateFunction::Min
+                        | crate::sql::planner::AggregateFunction::Max => DataType::Float64,
+                    };
+                    let name = agg
+                        .alias
+                        .clone()
+                        .unwrap_or_else(|| format!("agg_{:?}", agg.function));
+                    fields.push(arrow::datatypes::Field::new(&name, data_type, true));
+                }
+
+                let agg_schema = Arc::new(arrow::datatypes::Schema::new(fields));
+                Ok(Box::new(
+                    HashAggregateOperator::new(
+                        input_op,
+                        agg_schema,
+                        group_by.clone(),
+                        aggregates.clone(),
+                        *mode,
+                    )
+                    .with_gpu(self.gpu_manager.clone()),
+                ))
+            }
+
+            PhysicalPlan::HashJoin {
+                left,
+                right,
+                on,
+                join_type,
+            } => {
+                // Track OLAP Workload
+                self.workload_analyzer
+                    .write()
+                    .unwrap()
+                    .record(crate::engine::workload_analyzer::QueryPattern::Join);
+
+                use arrow::datatypes::Field;
+
+                let left_op = self.build_operator(left, tables, columnar_cache)?;
+                let right_op = self.build_operator(right, tables, columnar_cache)?;
+
+                // Build joined schema: left columns + right columns
+                let left_schema = left_op.schema();
+                let right_schema = right_op.schema();
+
+                let mut joined_fields: Vec<Field> = Vec::new();
+                for field in left_schema.fields().iter() {
+                    let mut f = field.as_ref().clone();
+                    // In RIGHT JOIN, left side can be null
+                    if matches!(join_type, crate::sql::planner::JoinType::Right) {
+                        f = f.with_nullable(true);
+                    }
+                    joined_fields.push(f);
+                }
+                for field in right_schema.fields().iter() {
+                    let mut f = field.as_ref().clone();
+                    // In LEFT JOIN, right side can be null
+                    if matches!(join_type, crate::sql::planner::JoinType::Left) {
+                        f = f.with_nullable(true);
+                    }
+                    joined_fields.push(f);
+                }
+
+                let joined_schema = Arc::new(Schema::new(joined_fields));
+
+                Ok(Box::new(HashJoinOperator::new(
+                    left_op,
+                    right_op,
+                    joined_schema,
+                    on.clone(),
+                    *join_type,
+                )))
+            }
+
+            PhysicalPlan::Insert { .. } => {
+                // INSERT should be handled in execute_physical_plan, not here
+                unreachable!("INSERT should not reach build_operator")
+            }
+            PhysicalPlan::Update { .. } => {
+                // UPDATE should be handled in execute_physical_plan, not here
+                unreachable!("UPDATE should not reach build_operator")
+            }
+            PhysicalPlan::Delete { .. } => {
+                // DELETE should be handled in execute_physical_plan, not here
+                unreachable!("DELETE should not reach build_operator")
+            }
+            PhysicalPlan::DropTable { .. } => {
+                // DROP TABLE should be handled in execute_physical_plan, not here
+                unreachable!("DROP TABLE should not reach build_operator")
+            }
+            PhysicalPlan::CreateTable { .. } => {
+                // CREATE TABLE should be handled in execute_physical_plan, not here
+                unreachable!("CREATE TABLE should not reach build_operator")
+            }
+            PhysicalPlan::CreateIndex { .. } => {
+                // CREATE INDEX should be handled in execute_physical_plan, not here
+                unreachable!("CREATE INDEX should not reach build_operator")
+            }
+            PhysicalPlan::DropIndex { .. } => {
+                // DROP INDEX should be handled in execute_physical_plan, not here
+                unreachable!("DROP INDEX should not reach build_operator")
+            }
+            PhysicalPlan::AlterTable { .. } => {
+                // ALTER TABLE should be handled in execute_physical_plan, not here
+                unreachable!("ALTER TABLE should not reach build_operator")
+            }
+            PhysicalPlan::CreateFunction { .. } => {
+                unreachable!("CREATE FUNCTION should not reach build_operator")
+            }
+            PhysicalPlan::CreateTrigger { .. } => {
+                unreachable!("CREATE TRIGGER should not reach build_operator")
+            }
+            PhysicalPlan::CreateJob { .. } => {
+                unreachable!("CREATE JOB should not reach build_operator")
+            }
+            PhysicalPlan::DropFunction { .. } => {
+                unreachable!("DROP FUNCTION should not reach build_operator")
+            }
+            PhysicalPlan::DropTrigger { .. } => {
+                unreachable!("DROP TRIGGER should not reach build_operator")
+            }
+            PhysicalPlan::DropJob { .. } => {
+                unreachable!("DROP JOB should not reach build_operator")
+            }
+            PhysicalPlan::GridExchange { .. } => {
+                // GridExchange 플레이스홀더 — DistributedExecutor가 런타임에 교체하므로
+                // interface의 build_operator에 도달하면 설계 오류
+                unreachable!(
+                    "GridExchange placeholder must be replaced by DistributedExecutor before build_operator is called"
+                )
+            }
+            PhysicalPlan::ShuffleWriter { .. } => {
+                unreachable!(
+                    "ShuffleWriter is a distributed operator and not supported in singleton Database"
+                )
+            }
+        }
+    }
+
+    /// Drain all batches from an operator.
+    fn drain_operator(op: &mut dyn PhysicalOperator) -> ByteRagResult<Vec<RecordBatch>> {
+        let mut results = Vec::new();
+        while let Some(batch) = op.next()? {
+            if batch.num_rows() > 0 {
+                results.push(batch);
+            }
+        }
+        Ok(results)
+    }
+}
+
+// ════════════════════════════════════════════
+// DatabaseSql Trait Implementation
+// ════════════════════════════════════════════
+
+impl crate::traits::DatabaseSql for Database {
+    fn execute_sql(&self, sql: &str) -> ByteRagResult<Vec<arrow::record_batch::RecordBatch>> {
+        // Reuse existing implementation
+        Database::execute_sql(self, sql)
+    }
+
+    fn register_table(&self, name: &str, batches: Vec<arrow::record_batch::RecordBatch>) {
+        // Reuse existing implementation
+        Database::register_table(self, name, batches)
+    }
+
+    fn append_batch(&self, table: &str, batch: arrow::record_batch::RecordBatch) -> ByteRagResult<()> {
+        // Reuse existing implementation
+        Database::append_batch(self, table, batch);
+        Ok(())
+    }
+}
+

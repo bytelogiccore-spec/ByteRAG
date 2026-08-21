@@ -1,0 +1,31 @@
+[workspace]
+members = [
+    "core/byterag-core",
+    "core/byterag-ffi",
+    "core/byterag-py",
+    "core/byterag-csharp",
+    "core/byterag-node",
+    "core/byterag-tests",
+    "core/byterag-benchmarks",
+    "core/byterag-examples",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/bytelogiccore-spec/ByteRAG"
+homepage = "https://bytelogiccore-spec.github.io/ByteRAG/"
+documentation = "https://docs.rs/byterag-core"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true       # 바이너리 크기 최적화 — 디버그 심볼 제거
+
+# 테스트 빌드 최적화 — debug(opt-level=0) 대비 빠른 링크·컴파일
+[profile.test]
+opt-level = 1       # 최소 최적화로 빌드 속도 향상 (debug보다 빠름)
+codegen-units = 16  # 병렬 컴파일 유닛 최대화

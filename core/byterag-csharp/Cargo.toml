@@ -1,0 +1,18 @@
+[package]
+name = "byterag-csharp"
+version.workspace = true
+edition = "2021"
+authors = ["ByteRAG Team"]
+description = "CsBindgen native C# bindings for ByteRAG database"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+byterag-core = { path = "../byterag-core", version = "0.1.0" }
+
+[build-dependencies]
+csbindgen = "1.9"
+
+
+

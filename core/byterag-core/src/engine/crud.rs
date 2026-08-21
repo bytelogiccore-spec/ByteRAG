@@ -1,0 +1,1020 @@
+//! Database CRUD Operations — Create, Read, Update, Delete methods
+
+use crate::engine::Database;
+use crate::engine::types::{BackgroundJob, DurabilityLevel};
+use crate::error::{ByteRagError, ByteRagResult};
+use crate::storage::StorageBackend;
+
+// ════════════════════════════════════════════
+// ⚠️ MVCC Value Encoding Constants
+// ════════════════════════════════════════════
+// MVCC 버전 관리를 위한 매직 헤더.
+// 반드시 2바이트 [0x00, tag]를 사용하여 일반 사용자 데이터와 충돌을 방지한다.
+// 일반 UTF-8 텍스트나 바이너리 데이터는 0x00으로 시작하지 않으므로 안전하다.
+// 이 상수를 변경하면 crud.rs, snapshot.rs 양쪽 모두 동기화해야 한다.
+
+/// MVCC 값이 존재함을 나타내는 2바이트 매직 헤더: [0x00, 0x01]
+pub(crate) const MVCC_VALUE_PREFIX: [u8; 2] = [0x00, 0x01];
+/// MVCC 삭제(tombstone)를 나타내는 2바이트 매직 헤더: [0x00, 0x02]
+pub(crate) const MVCC_TOMBSTONE_PREFIX: [u8; 2] = [0x00, 0x02];
+/// MVCC 매직 헤더 길이
+pub(crate) const MVCC_PREFIX_LEN: usize = 2;
+
+impl Database {
+    // ════════════════════════════════════════════
+    // WAL Helper
+    // ════════════════════════════════════════════
+
+    /// Append a WAL record if durability is enabled and a WAL backend exists.
+    #[inline]
+    fn append_to_wal(&self, record: &crate::wal::WalRecord) -> ByteRagResult<()> {
+        if self.durability == DurabilityLevel::None {
+            return Ok(());
+        }
+        if let Some(wal) = &self.wal {
+            wal.append(record)?;
+            if self.durability == DurabilityLevel::Full {
+                if let Some(tx) = &self.job_sender {
+                    let _ = tx.send(BackgroundJob::WalSync);
+                } else {
+                    wal.sync()?;
+                }
+            }
+        } else if let Some(encrypted_wal) = &self.encrypted_wal {
+            encrypted_wal.append(record)?;
+            if self.durability == DurabilityLevel::Full {
+                if let Some(tx) = &self.job_sender {
+                    let _ = tx.send(BackgroundJob::EncryptedWalSync);
+                } else {
+                    encrypted_wal.sync()?;
+                }
+            }
+        }
+
+        // ════════════════════════════════════════════
+        // Phase 5: Replication (Master 브로드캐스트)
+        // ════════════════════════════════════════════
+        if let Some(master) = &self.replication_master {
+            // bincode로 직렬화하여 전송 (임시)
+            if let Ok(data) = bincode::serialize(record) {
+                master.replicate(data);
+            }
+        }
+
+        Ok(())
+    }
+
+    // ════════════════════════════════════════════
+    // CRUD Operations
+    // ════════════════════════════════════════════
+
+    // ════════════════════════════════════════════
+    // CREATE Operations
+    // ════════════════════════════════════════════
+
+    // ════════════════════════════════════════════
+    // Phase 3.4: 자동 파티션 지원 라우터
+    // ════════════════════════════════════════════
+    fn route_partition_or_expand(&self, table: &str, key_str: &str) -> String {
+        let route_res = {
+            let maps = self.partition_maps.read().unwrap();
+            if let Some(map) = maps.get(table) {
+                use crate::storage::partition::PartitionValue;
+                let pv = PartitionValue::Text(key_str.to_string());
+                Some(map.route_or_expand(&pv))
+            } else {
+                None
+            }
+        };
+
+        if let Some(res) = route_res {
+            use crate::storage::partition::RouteResult;
+            match res {
+                RouteResult::Routed(sub_tbl) => sub_tbl,
+                RouteResult::NeedsExpansion {
+                    new_table,
+                    new_bounds,
+                } => {
+                    // 쓰기 락을 획득하여 Range 파티션 bounds 갱신
+                    let mut maps = self.partition_maps.write().unwrap();
+                    if let Some(map) = maps.get_mut(table) {
+                        use crate::storage::partition::PartitionType;
+                        if let PartitionType::Range { bounds, .. } = &mut map.partition_type {
+                            let last_hi = bounds.last().map(|(_, hi)| *hi).unwrap_or(0);
+                            let v = key_str.parse::<i64>().unwrap_or(0);
+                            // 다른 스레드에서 먼저 갱신했을 수 있으므로 재검사
+                            if v >= last_hi {
+                                bounds.push(new_bounds);
+                                map.num_partitions += 1;
+                            }
+
+                            // 갱신 후 다시 라우팅 시도
+                            use crate::storage::partition::PartitionValue;
+                            let pv = PartitionValue::Text(key_str.to_string());
+                            let final_res = map.route_or_expand(&pv);
+                            if let RouteResult::Routed(final_tbl) = final_res {
+                                final_tbl
+                            } else {
+                                new_table
+                            }
+                        } else {
+                            new_table
+                        }
+                    } else {
+                        table.to_string()
+                    }
+                }
+            }
+        } else {
+            table.to_string()
+        }
+    }
+
+    /// 키-값 쌍을 삽입합니다.
+    ///
+    /// 데이터는 먼저 Delta Store (Tier 1)에 쓰여집니다.
+    /// Flush 임계값을 초과하면 자동으로 WOS로 이동합니다.
+    ///
+    /// # 인자
+    ///
+    /// * `table` - 테이블 이름
+    /// * `key` - 키 (바이트 배열)
+    /// * `value` - 값 (바이트 배열)
+    pub fn insert(&self, table: &str, key: &[u8], value: &[u8]) -> ByteRagResult<()> {
+        // ════════════════════════════════════════════
+        // Phase 3: 파티셔닝 (Partition Routing with Auto-Expand)
+        // ════════════════════════════════════════════
+        let original_table = table; // 파티션 자동 통계 비교용 원본 이름 보존
+        let key_str = String::from_utf8_lossy(key).into_owned();
+        let target_table = self.route_partition_or_expand(table, &key_str);
+        let table = target_table.as_str();
+        // Log to WAL first — only allocate record if WAL exists
+        #[cfg(feature = "wal")]
+        if self.durability != DurabilityLevel::None
+            && (self.wal.is_some() || self.encrypted_wal.is_some())
+        {
+            self.append_to_wal(&crate::wal::WalRecord::Insert {
+                table: table.to_string(),
+                key: key.to_vec(),
+                value: value.to_vec(),
+                ts: 0,
+            })?;
+        }
+
+        // 데이터 삽입
+        self.delta.insert(table, key, value)?;
+
+        // O(1) row_id 계산 + 인덱스 업데이트 — only when index exists
+        #[cfg(feature = "index")]
+        if self.has_index(table, "key") {
+            let counter = self
+                .row_counters
+                .entry(table.to_string())
+                .or_insert_with(|| std::sync::atomic::AtomicUsize::new(0));
+            let row_id = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if let Some(tx) = &self.job_sender {
+                let _ = tx.send(BackgroundJob::IndexUpdate {
+                    table: table.to_string(),
+                    column: "key".to_string(),
+                    key: key.to_vec(),
+                    row_id,
+                });
+            } else {
+                self.index.update_on_insert(table, "key", key, row_id)?;
+            }
+        }
+
+        // Auto-flush if threshold exceeded
+        if self.delta.should_flush() {
+            self.flush()?;
+        }
+
+        // ════════════════════════════════════════════
+        // Phase 0: HTAP 실시간 동기화 (RealtimeSync)
+        // ════════════════════════════════════════════
+        use crate::storage::realtime_sync::SyncMode;
+        let sync_config = &self.config.sync;
+        match sync_config.mode {
+            SyncMode::Immediate => {
+                // 즉시 Columnar Cache 동기화
+                let _ = self.sync_columnar_cache(table);
+            }
+            SyncMode::Threshold(n) => {
+                // N건 이상일 때만 동기화 (이 로직은 보통 flush에서 처리되거나,
+                // delta row count를 기반으로 수행)
+                if self.delta.count(table).unwrap_or(0) >= n {
+                    let _ = self.sync_columnar_cache(table);
+                }
+            }
+            SyncMode::AsyncBatch { .. } => {
+                // 비동기 배치는 백그라운드 스레드에서 주기적으로 수행됨.
+                // 여기서는 nothing.
+            }
+        }
+
+        // ════════════════════════════════════════════
+        // Phase 3 Synergy: 파티셔닝 자동 통계 갱신
+        // ════════════════════════════════════════════
+        // 파티셔닝된 테이블이면 sub-table명이 original_table과 다름
+        if table != original_table {
+            // 1) row_count 자동 증가 (원자적)
+            self.partition_stats
+                .entry(table.to_string())
+                .and_modify(|s| s.row_count += 1)
+                .or_insert_with(|| crate::storage::partition::PartitionStats {
+                    row_count: 1,
+                    ..Default::default()
+                });
+
+            // 2) 첫 쓰기 시각 자동 기록 (이미 있으면 덮어쓰지 않음)
+            self.partition_creation_times
+                .entry(table.to_string())
+                .or_insert_with(|| {
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs()
+                });
+        }
+
+        // Event-driven MV 갱신 알림 (MV가 없으면 zero overhead)
+        self.mat_view_registry.notify_change(table);
+
+        self.metrics.inc_inserts();
+        Ok(())
+    }
+
+    /// 여러 키-값 쌍을 일괄 삽입합니다 (최적화됨).
+    ///
+    /// `parallel_engine`의 `min_rows_for_parallel` 이상이면 Rayon 스레드 풀에서 병렬 삽입합니다.
+    pub fn insert_batch(&self, table: &str, rows: Vec<(Vec<u8>, Vec<u8>)>) -> ByteRagResult<()> {
+        // ════════════════════════════════════════════
+        // Phase 3: 파티셔닝 (Partition Routing with Auto-Expand)
+        // ════════════════════════════════════════════
+        let target_table = if let Some((first_key, _)) = rows.first() {
+            let key_str = String::from_utf8_lossy(first_key).into_owned();
+            self.route_partition_or_expand(table, &key_str)
+        } else {
+            table.to_string()
+        };
+        let table = target_table.as_str();
+        #[cfg(feature = "wal")]
+        if self.durability != DurabilityLevel::None
+            && (self.wal.is_some() || self.encrypted_wal.is_some())
+        {
+            self.append_to_wal(&crate::wal::WalRecord::Batch {
+                table: table.to_string(),
+                rows: rows.clone(),
+                ts: 0,
+            })?;
+        }
+
+        // 병렬화 임계값 이상이면 parallel_engine 으로 병렬 삽입
+        if self.parallel_engine.should_parallelize_rows(rows.len()) {
+            use rayon::prelude::*;
+            let delta = &self.delta;
+            let table_owned = table.to_string();
+            // 각 (key, value) 쌍을 병렬로 삽입
+            // DeltaStore는 내부적으로 DashMap + SkipMap(Arc)이므로 공유 안전
+            let results: Vec<crate::error::ByteRagResult<()>> = self.parallel_engine.execute(|| {
+                rows.par_iter()
+                    .map(|(key, value)| delta.insert(&table_owned, key, value))
+                    .collect()
+            });
+            for r in results {
+                r?;
+            }
+        } else {
+            self.delta.insert_batch(table, rows)?;
+        }
+
+        // Auto-flush if threshold exceeded
+        if self.delta.should_flush() {
+            self.flush()?;
+        }
+
+        // ════════════════════════════════════════════
+        // Phase 0: HTAP 실시간 동기화 (RealtimeSync)
+        // ════════════════════════════════════════════
+        use crate::storage::realtime_sync::SyncMode;
+        let sync_config = &self.config.sync;
+        match sync_config.mode {
+            SyncMode::Immediate => {
+                let _ = self.sync_columnar_cache(table);
+            }
+            SyncMode::Threshold(n) => {
+                if self.delta.count(table).unwrap_or(0) >= n {
+                    let _ = self.sync_columnar_cache(table);
+                }
+            }
+            SyncMode::AsyncBatch { .. } => {}
+        }
+
+        // Event-driven MV 갱신 알림
+        self.mat_view_registry.notify_change(table);
+
+        Ok(())
+    }
+
+    /// Insert a versioned key-value pair for MVCC.
+    pub fn insert_versioned(
+        &self,
+        table: &str,
+        key: &[u8],
+        value: Option<&[u8]>,
+        commit_ts: u64,
+    ) -> ByteRagResult<()> {
+        // ════════════════════════════════════════════
+        // Phase 3: 파티셔닝 (Partition Routing)
+        // ════════════════════════════════════════════
+        let target_table = {
+            let maps = self.partition_maps.read().unwrap();
+            if let Some(map) = maps.get(table) {
+                use crate::storage::partition::PartitionValue;
+                let key_str = String::from_utf8_lossy(key).into_owned();
+                map.route_key(&PartitionValue::Text(key_str))
+            } else {
+                table.to_string()
+            }
+        };
+        let table = target_table.as_str();
+        let vk = crate::transaction::mvcc::version::VersionedKey::new(key.to_vec(), commit_ts);
+        let encoded_key = vk.encode();
+
+        // Encode value with prefix
+        // ⚠️ MVCC 매직 헤더 인코딩 — MVCC_VALUE_PREFIX / MVCC_TOMBSTONE_PREFIX 사용
+        let encoded_value = match value {
+            Some(v) => {
+                let mut bytes = Vec::with_capacity(v.len() + MVCC_PREFIX_LEN);
+                bytes.extend_from_slice(&MVCC_VALUE_PREFIX);
+                bytes.extend_from_slice(v);
+                bytes
+            }
+            None => MVCC_TOMBSTONE_PREFIX.to_vec(),
+        };
+
+        // Write to Delta Store
+        self.delta.insert(table, &encoded_key, &encoded_value)?;
+
+        // ════════════════════════════════════════════
+        // Phase 0: HTAP 실시간 동기화 (RealtimeSync)
+        // ════════════════════════════════════════════
+        use crate::storage::realtime_sync::SyncMode;
+        let sync_config = &self.config.sync;
+        match sync_config.mode {
+            SyncMode::Immediate => {
+                let _ = self.sync_columnar_cache(table);
+            }
+            SyncMode::Threshold(n) => {
+                if self.delta.count(table).unwrap_or(0) >= n {
+                    let _ = self.sync_columnar_cache(table);
+                }
+            }
+            SyncMode::AsyncBatch { .. } => {}
+        }
+
+        Ok(())
+    }
+
+    // ════════════════════════════════════════════
+    // READ Operations
+    // ════════════════════════════════════════════
+
+    /// Read a specific version of a key (Snapshot Read).
+    pub fn get_snapshot(
+        &self,
+        table: &str,
+        key: &[u8],
+        read_ts: u64,
+    ) -> ByteRagResult<Option<Option<Vec<u8>>>> {
+        let target_table = {
+            let maps = self.partition_maps.read().unwrap();
+            if let Some(map) = maps.get(table) {
+                use crate::storage::partition::PartitionValue;
+                let key_str = String::from_utf8_lossy(key).into_owned();
+                map.route_key(&PartitionValue::Text(key_str))
+            } else {
+                table.to_string()
+            }
+        };
+        let table = target_table.as_str();
+
+        let start_vk = crate::transaction::mvcc::version::VersionedKey::new(key.to_vec(), read_ts);
+        let start_bytes = start_vk.encode();
+
+        // Helper: returns Some(Some(v)), Some(None) (tombstone), or None (mismatch)
+        let check_entry = |entry_key: &[u8], entry_val: &[u8]| -> Option<Option<Vec<u8>>> {
+            let decoded =
+                crate::transaction::mvcc::version::VersionedKey::decode(entry_key).ok()?;
+            if decoded.user_key != key {
+                return None;
+            }
+            if decoded.commit_ts > read_ts {
+                return None;
+            }
+            if entry_val.is_empty() {
+                return Some(Some(entry_val.to_vec())); // Legacy empty value
+            }
+            // ⚠️ MVCC 매직 헤더 디코딩 — 2바이트 [0x00, tag] 확인
+            if entry_val.len() >= MVCC_PREFIX_LEN && entry_val[0] == 0x00 {
+                match entry_val[1] {
+                    0x01 => return Some(Some(entry_val[MVCC_PREFIX_LEN..].to_vec())),
+                    0x02 => return Some(None), // Tombstone
+                    _ => {}
+                }
+            }
+            // Legacy non-prefixed value
+            Some(Some(entry_val.to_vec()))
+        };
+
+        // 1. Check Delta Store
+        if let Some((k, v)) = self.delta.scan_one(table, start_bytes.clone()..)?
+            && let Some(result) = check_entry(&k, &v)
+        {
+            return Ok(Some(result));
+        }
+
+        // 2. Check WOS
+        if let Some((k, v)) = self.wos_for_table(table).scan_one(table, start_bytes..)?
+            && let Some(result) = check_entry(&k, &v)
+        {
+            return Ok(Some(result));
+        }
+
+        Ok(None)
+    }
+
+    /// Helper method for Snapshot: scan all versioned entries from Delta Store.
+    pub(crate) fn scan_delta_versioned(&self, table: &str) -> ByteRagResult<Vec<(Vec<u8>, Vec<u8>)>> {
+        StorageBackend::scan(&self.delta, table, ..)
+    }
+
+    /// Helper method for Snapshot: scan all versioned entries from WOS.
+    pub(crate) fn scan_wos_versioned(&self, table: &str) -> ByteRagResult<Vec<(Vec<u8>, Vec<u8>)>> {
+        self.wos_for_table(table).scan(table, ..)
+    }
+
+    /// Get the current timestamp from the transaction manager.
+    pub fn current_timestamp(&self) -> u64 {
+        self.tx_manager.current_ts()
+    }
+
+    /// Allocate a new commit timestamp for a transaction.
+    /// This increments the timestamp oracle and returns a unique timestamp.
+    pub fn allocate_commit_ts(&self) -> u64 {
+        self.tx_manager.allocate_commit_ts()
+    }
+
+    /// 키로 값을 조회합니다.
+    ///
+    /// 성능 최적화: MVCC feature가 비활성화되면 Fast-path만 사용하여
+    /// 최대 성능을 달성합니다.
+    #[inline(always)]
+    pub fn get(&self, table: &str, key: &[u8]) -> ByteRagResult<Option<Vec<u8>>> {
+        let target_table = {
+            let maps = self.partition_maps.read().unwrap();
+            if let Some(map) = maps.get(table) {
+                use crate::storage::partition::PartitionValue;
+                let key_str = String::from_utf8_lossy(key).into_owned();
+                map.route_key(&PartitionValue::Text(key_str))
+            } else {
+                table.to_string()
+            }
+        };
+        let table = target_table.as_str();
+
+        // Fast-path: Delta → WOS 직접 조회 (MVCC 오버헤드 없음)
+        // MVCC feature가 활성화되어도 Fast-path를 우선 사용
+        // 일반 insert()로 저장된 데이터는 여기서 조회됨
+        if let Some(value) = self.delta.get(table, key)? {
+            self.metrics.inc_gets();
+            self.metrics.inc_delta_hit();
+            return Ok(Some(value));
+        }
+        self.metrics.inc_delta_miss();
+        if let Some(value) = self.wos_for_table(table).get(table, key)? {
+            self.metrics.inc_gets();
+            self.metrics.inc_wos_hit();
+            return Ok(Some(value));
+        }
+        self.metrics.inc_wos_miss();
+
+        // ════════════════════════════════════════════
+        // MVCC Fallback: Transaction Commit 후 데이터 조회
+        // ════════════════════════════════════════════
+        // Transaction::commit()은 insert_versioned()와 insert()를 모두 호출하므로
+        // 일반적으로 위의 Fast-path에서 데이터를 찾을 수 있습니다.
+        //
+        // 하지만 다음 경우에 이 Fallback이 필요합니다:
+        // 1. insert_versioned()만 호출된 경우 (일반 key 없음)
+        // 2. 향후 MVCC 전용 모드 지원 시
+        // 3. Snapshot isolation 구현 시
+        //
+        // 현재는 최신 타임스탬프로 조회하지만, 향후 snapshot_ts를 인자로 받아
+        // 특정 시점의 데이터를 조회할 수 있도록 확장 가능합니다.
+        let current_ts = self.tx_manager.allocate_commit_ts();
+        let vk = crate::transaction::mvcc::version::VersionedKey::new(key.to_vec(), current_ts);
+        let encoded_key = vk.encode();
+
+        // Delta에서 versioned key 조회
+        if let Some(value) = self.delta.get(table, &encoded_key)? {
+            return Ok(Self::decode_mvcc_value(value));
+        }
+
+        // WOS에서 versioned key 조회
+        if let Some(value) = self.wos_for_table(table).get(table, &encoded_key)? {
+            return Ok(Self::decode_mvcc_value(value));
+        }
+
+        // ── Metrics ──────────────────────────────────────────────────────────
+        self.metrics.inc_gets();
+        // No hit recorded for MVCC fallback path
+
+        Ok(None)
+    }
+
+    /// MVCC 값 디코딩 (Tombstone 필터링)
+    #[inline(always)]
+    fn decode_mvcc_value(v: Vec<u8>) -> Option<Vec<u8>> {
+        if v.len() < MVCC_PREFIX_LEN || v[0] != 0x00 {
+            return Some(v); // Legacy value
+        }
+
+        match v[1] {
+            0x01 => Some(v[MVCC_PREFIX_LEN..].to_vec()), // Value
+            0x02 => None,                                // Tombstone
+            _ => Some(v),                                // Unknown tag
+        }
+    }
+
+    /// VersionedKey 디코딩
+    #[inline(always)]
+    fn decode_versioned_key(k: Vec<u8>) -> Vec<u8> {
+        if k.len() <= 8 {
+            return k;
+        }
+
+        crate::transaction::mvcc::version::VersionedKey::decode(&k)
+            .map(|vk| vk.user_key)
+            .unwrap_or(k)
+    }
+
+    /// 테이블의 모든 키-값 쌍을 스캔합니다.
+    ///
+    /// Delta + WOS 를 `rayon::join()`으로 병렬 스캔합니다.
+    pub fn scan(&self, table: &str) -> ByteRagResult<Vec<(Vec<u8>, Vec<u8>)>> {
+        use crate::storage::StorageBackend;
+
+        // Delta + WOS 병렬 스캔
+        let (delta_result, wos_result) = rayon::join(
+            || StorageBackend::scan(&self.delta, table, ..),
+            || self.wos_for_table(table).scan(table, ..),
+        );
+
+        let delta_entries = delta_result?;
+        let wos_entries = wos_result?;
+
+        // Fast-path: Delta가 비어있으면 WOS만 반환
+        if delta_entries.is_empty() {
+            return Ok(wos_entries
+                .into_iter()
+                .filter_map(|(k, v)| {
+                    let dk = Self::decode_versioned_key(k);
+                    Self::decode_mvcc_value(v).map(|dv| (dk, dv))
+                })
+                .collect());
+        }
+
+        // 2-way merge (both are already sorted)
+        let mut result = Vec::with_capacity(delta_entries.len() + wos_entries.len());
+
+        let mut i = 0;
+        let mut j = 0;
+
+        while i < delta_entries.len() && j < wos_entries.len() {
+            match delta_entries[i].0.cmp(&wos_entries[j].0) {
+                std::cmp::Ordering::Less => {
+                    if let Some(decoded_v) = Self::decode_mvcc_value(delta_entries[i].1.clone()) {
+                        let user_key = Self::decode_versioned_key(delta_entries[i].0.clone());
+                        result.push((user_key, decoded_v));
+                    }
+                    i += 1;
+                }
+                std::cmp::Ordering::Equal => {
+                    if let Some(decoded_v) = Self::decode_mvcc_value(delta_entries[i].1.clone()) {
+                        let user_key = Self::decode_versioned_key(delta_entries[i].0.clone());
+                        result.push((user_key, decoded_v));
+                    }
+                    i += 1;
+                    j += 1;
+                }
+                std::cmp::Ordering::Greater => {
+                    if let Some(decoded_v) = Self::decode_mvcc_value(wos_entries[j].1.clone()) {
+                        let user_key = Self::decode_versioned_key(wos_entries[j].0.clone());
+                        result.push((user_key, decoded_v));
+                    }
+                    j += 1;
+                }
+            }
+        }
+
+        while i < delta_entries.len() {
+            if let Some(decoded_v) = Self::decode_mvcc_value(delta_entries[i].1.clone()) {
+                let user_key = Self::decode_versioned_key(delta_entries[i].0.clone());
+                result.push((user_key, decoded_v));
+            }
+            i += 1;
+        }
+
+        while j < wos_entries.len() {
+            if let Some(decoded_v) = Self::decode_mvcc_value(wos_entries[j].1.clone()) {
+                let user_key = Self::decode_versioned_key(wos_entries[j].0.clone());
+                result.push((user_key, decoded_v));
+            }
+            j += 1;
+        }
+
+        Ok(result)
+    }
+
+    /// 테이블의 키 범위를 스캔합니다.
+    pub fn range(
+        &self,
+        table: &str,
+        start_key: &[u8],
+        end_key: &[u8],
+    ) -> ByteRagResult<Vec<(Vec<u8>, Vec<u8>)>> {
+        let range = start_key.to_vec()..end_key.to_vec();
+
+        // Scan both Delta Store and WOS with range bounds
+        let mut merged = std::collections::BTreeMap::new();
+        for (k, v) in self.delta.scan(table, range.clone())? {
+            merged.insert(k, v);
+        }
+        for (k, v) in self.wos_for_table(table).scan(table, range)? {
+            merged.entry(k).or_insert(v);
+        }
+
+        Ok(merged.into_iter().collect())
+    }
+
+    /// 테이블의 행 개수를 반환합니다.
+    pub fn table_row_count(&self, table: &str) -> ByteRagResult<usize> {
+        self.count(table)
+    }
+
+    // ════════════════════════════════════════════
+    // DELETE Operations
+    // ════════════════════════════════════════════
+
+    /// 키를 삭제합니다.
+    pub fn delete(&self, table: &str, key: &[u8]) -> ByteRagResult<bool> {
+        let target_table = {
+            let maps = self.partition_maps.read().unwrap();
+            if let Some(map) = maps.get(table) {
+                use crate::storage::partition::PartitionValue;
+                let key_str = String::from_utf8_lossy(key).into_owned();
+                map.route_key(&PartitionValue::Text(key_str))
+            } else {
+                table.to_string()
+            }
+        };
+        let table = target_table.as_str();
+
+        #[cfg(feature = "wal")]
+        if self.durability != DurabilityLevel::None
+            && (self.wal.is_some() || self.encrypted_wal.is_some())
+        {
+            self.append_to_wal(&crate::wal::WalRecord::Delete {
+                table: table.to_string(),
+                key: key.to_vec(),
+                ts: 0,
+            })?;
+        }
+
+        #[cfg(feature = "index")]
+        if self.has_index(table, "key") {
+            let row_ids = self.index.lookup(table, "key", key)?;
+            for row_id in row_ids {
+                self.index.update_on_delete(table, "key", key, row_id)?;
+            }
+        }
+
+        // 1. Delete from legacy
+        let delta_deleted = self.delta.delete(table, key)?;
+        let wos_deleted = self.wos_for_table(table).delete(table, key)?;
+
+        // 2. Add versioned tombstone if it was a versioned key
+        #[cfg(feature = "mvcc")]
+        {
+            let commit_ts = self.tx_manager.allocate_commit_ts();
+            self.insert_versioned(table, key, None, commit_ts)?;
+        }
+
+        // Event-driven MV 갱신 알림
+        self.mat_view_registry.notify_change(table);
+
+        self.metrics.inc_deletes();
+        Ok(delta_deleted || wos_deleted)
+    }
+
+    // ════════════════════════════════════════════
+    // Helper Methods
+    // ════════════════════════════════════════════
+
+    /// Synchronize the Columnar Cache with the latest data from Delta Store.
+    ///
+    /// If the table has a schema in table_schemas, it will be synced as typed data.
+    /// Otherwise, it will be synced as raw Binary data.
+    pub fn sync_columnar_cache(&self, table: &str) -> ByteRagResult<usize> {
+        let base_table = if let Some(idx) = table.find("__shard_") {
+            &table[..idx]
+        } else {
+            table
+        };
+
+        // Check if table has a schema (SQL table) - case-insensitive
+        let schemas = self.table_schemas.read().unwrap();
+        let table_schema = schemas
+            .get(base_table)
+            .or_else(|| {
+                let table_lower = base_table.to_lowercase();
+                schemas
+                    .iter()
+                    .find(|(k, _)| k.to_lowercase() == table_lower)
+                    .map(|(_, v)| v)
+            })
+            .cloned();
+        drop(schemas);
+
+        // Scan from both Tier 1 (Delta) and Tier 3 (WOS)
+        let table_lower = table.to_lowercase();
+        let mut rows = self.delta.scan(&table_lower, ..)?;
+        let mut wos_rows = self.wos_for_table(&table_lower).scan(&table_lower, ..)?;
+        rows.append(&mut wos_rows);
+
+        self.columnar_cache
+            .sync_from_storage(table, rows, table_schema)
+    }
+
+    /// Sync data from multiple tiers (Delta and ROS) to GPU for merge operations.
+    pub fn sync_gpu_cache_multi_tier(&self, table: &str) -> ByteRagResult<()> {
+        let gpu = self
+            .gpu_manager
+            .as_ref()
+            .ok_or_else(|| ByteRagError::NotImplemented("GPU manager not available".to_string()))?;
+
+        // 1. Sync Delta data (Tier 1)
+        let delta_batches = self.columnar_cache.get_batches(table, None)?;
+        if let Some(batches) = delta_batches {
+            for batch in batches {
+                gpu.upload_batch_pinned(&format!("{}_delta", table), &batch)?;
+            }
+        }
+
+        // 2. Sync ROS data (Tier 5) - simplified: assuming ROS is already in SQL tables for now
+        let tables = self.tables.read().unwrap();
+        if let Some(batches) = tables.get(table) {
+            for batch in batches {
+                gpu.upload_batch_pinned(&format!("{}_ros", table), batch)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Legacy method to sync data from Columnar Cache to GPU.
+    pub fn sync_gpu_cache(&self, table: &str) -> ByteRagResult<()> {
+        self.sync_gpu_cache_multi_tier(table)
+    }
+
+    /// Execute an operation on GPU with automatic fallback to CPU on any error.
+    pub fn gpu_exec_with_fallback<T, F, C>(&self, gpu_op: F, cpu_op: C) -> ByteRagResult<T>
+    where
+        F: FnOnce(&crate::storage::gpu::GpuManager) -> ByteRagResult<T>,
+        C: FnOnce() -> ByteRagResult<T>,
+    {
+        if let Some(gpu) = &self.gpu_manager {
+            match gpu_op(gpu) {
+                Ok(val) => Ok(val),
+                Err(e) => {
+                    tracing::warn!("GPU execution failed, falling back to CPU: {:?}", e);
+                    cpu_op()
+                }
+            }
+        } else {
+            cpu_op()
+        }
+    }
+
+    // ════════════════════════════════════════════
+    // CAS (Compare-And-Swap) Operations
+    // ════════════════════════════════════════════
+
+    /// 값이 없을 때만 삽입 (Atomic CAS)
+    pub fn insert_if_not_exists(&self, table: &str, key: &[u8], value: &[u8]) -> ByteRagResult<bool> {
+        let _guard = self.cas_locks.lock(table, key);
+
+        if self.get(table, key)?.is_none() {
+            self.insert(table, key, value)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// 기존 값과 비교하여 일치할 때만 새로운 값으로 교체 (Atomic CAS)
+    pub fn compare_and_swap(
+        &self,
+        table: &str,
+        key: &[u8],
+        expected: &[u8],
+        new_value: &[u8],
+    ) -> ByteRagResult<bool> {
+        let _guard = self.cas_locks.lock(table, key);
+
+        if let Some(current) = self.get(table, key)?
+            && current == expected
+        {
+            self.insert(table, key, new_value)?;
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
+    /// 기존 값이 존재할 때만 업데이트 (Atomic CAS)
+    pub fn update_if_exists(&self, table: &str, key: &[u8], value: &[u8]) -> ByteRagResult<bool> {
+        let _guard = self.cas_locks.lock(table, key);
+
+        if self.get(table, key)?.is_some() {
+            self.insert(table, key, value)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// 기존 값과 일치할 때만 삭제 (Atomic CAS)
+    pub fn delete_if_equals(&self, table: &str, key: &[u8], expected: &[u8]) -> ByteRagResult<bool> {
+        let _guard = self.cas_locks.lock(table, key);
+
+        if let Some(current) = self.get(table, key)?
+            && current == expected
+        {
+            self.delete(table, key)?;
+            return Ok(true);
+        }
+        Ok(false)
+    }
+}
+
+// ════════════════════════════════════════════
+// DatabaseCore Trait Implementation
+// ════════════════════════════════════════════
+
+impl crate::traits::DatabaseCore for Database {
+    fn insert(&self, table: &str, key: &[u8], value: &[u8]) -> ByteRagResult<()> {
+        // Reuse existing implementation
+        Database::insert(self, table, key, value)
+    }
+
+    fn get(&self, table: &str, key: &[u8]) -> ByteRagResult<Option<Vec<u8>>> {
+        // Reuse existing implementation
+        Database::get(self, table, key)
+    }
+
+    fn delete(&self, table: &str, key: &[u8]) -> ByteRagResult<()> {
+        // Reuse existing implementation
+        Database::delete(self, table, key).map(|_| ())
+    }
+
+    fn scan(&self, table: &str) -> ByteRagResult<Vec<(Vec<u8>, Vec<u8>)>> {
+        // Reuse existing implementation
+        Database::scan(self, table)
+    }
+
+    fn flush(&self) -> ByteRagResult<()> {
+        // Reuse existing implementation
+        Database::flush(self)
+    }
+
+    fn insert_batch(&self, table: &str, entries: Vec<(Vec<u8>, Vec<u8>)>) -> ByteRagResult<()> {
+        // Reuse existing implementation
+        Database::insert_batch(self, table, entries)
+    }
+
+    fn insert_if_not_exists(&self, table: &str, key: &[u8], value: &[u8]) -> ByteRagResult<bool> {
+        Database::insert_if_not_exists(self, table, key, value)
+    }
+
+    fn compare_and_swap(
+        &self,
+        table: &str,
+        key: &[u8],
+        expected: &[u8],
+        new_value: &[u8],
+    ) -> ByteRagResult<bool> {
+        Database::compare_and_swap(self, table, key, expected, new_value)
+    }
+
+    fn update_if_exists(&self, table: &str, key: &[u8], value: &[u8]) -> ByteRagResult<bool> {
+        Database::update_if_exists(self, table, key, value)
+    }
+
+    fn delete_if_equals(&self, table: &str, key: &[u8], expected: &[u8]) -> ByteRagResult<bool> {
+        Database::delete_if_equals(self, table, key, expected)
+    }
+}
+
+// ════════════════════════════════════════════
+// DatabaseSerde Trait Implementation
+// ════════════════════════════════════════════
+
+impl crate::traits::DatabaseSerde for Database {
+    fn insert_struct<T: serde::Serialize>(
+        &self,
+        table: &str,
+        key: &[u8],
+        data: &T,
+    ) -> ByteRagResult<()> {
+        let serialized = bincode::serialize(data).map_err(|e| {
+            crate::error::ByteRagError::Serialization(format!("Failed to serialize struct: {}", e))
+        })?;
+        self.insert(table, key, &serialized)
+    }
+
+    fn get_struct<T: serde::de::DeserializeOwned>(
+        &self,
+        table: &str,
+        key: &[u8],
+    ) -> ByteRagResult<Option<T>> {
+        if let Some(bytes) = self.get(table, key)? {
+            let deserialized = bincode::deserialize(&bytes).map_err(|e| {
+                crate::error::ByteRagError::Serialization(format!(
+                    "Failed to deserialize struct: {}",
+                    e
+                ))
+            })?;
+            Ok(Some(deserialized))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+// ════════════════════════════════════════════
+// Vector & Graph High-Level APIs
+// ════════════════════════════════════════════
+
+impl Database {
+    /// Perform in-memory SIMD vector search over key-value entries
+    /// Assumes table contains [key -> raw f32 vector bytes]
+    pub fn vector_search(
+        &self,
+        table: &str,
+        query: &[f32],
+        top_k: usize,
+        metric: crate::vector::Metric,
+    ) -> ByteRagResult<Vec<crate::vector::VectorSearchResult>> {
+        let entries = self.scan(table)?;
+        let dim = query.len();
+        let mut index = crate::vector::FlatVectorIndex::new(dim, metric);
+
+        for (key, val_bytes) in entries {
+            if val_bytes.len() == dim * std::mem::size_of::<f32>() {
+                let vec_slice: &[f32] = unsafe {
+                    std::slice::from_raw_parts(
+                        val_bytes.as_ptr() as *const f32,
+                        dim,
+                    )
+                };
+                index.insert(key, vec_slice);
+            }
+        }
+
+        Ok(index.search(query, top_k))
+    }
+
+    /// Traverse an in-memory knowledge graph represented by edges
+    pub fn graph_traverse(
+        &self,
+        table: &str,
+        start_node: &str,
+        max_depth: usize,
+    ) -> ByteRagResult<Option<crate::graph::Subgraph>> {
+        let entries = self.scan(table)?;
+        let mut edges = Vec::with_capacity(entries.len());
+
+        for (k_bytes, v_bytes) in entries {
+            if let (Ok(src), Ok(dst)) = (String::from_utf8(k_bytes), String::from_utf8(v_bytes)) {
+                edges.push((src, dst));
+            }
+        }
+
+        let graph = crate::graph::CsrGraph::from_edges(&edges);
+        Ok(graph.multi_hop_traversal(start_node, max_depth))
+    }
+}
+
+
+

@@ -1,0 +1,18 @@
+[package]
+name = "byterag-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "C FFI bindings for ByteRAG database"
+readme = "README.md"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+byterag-core = { path = "../byterag-core", version = "0.1.0" }
+libc = "0.2"
+
+

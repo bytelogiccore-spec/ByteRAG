@@ -1,0 +1,89 @@
+[package]
+name = "byterag-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "High-performance file-based database engine with 5-Tier Hybrid Storage"
+readme = "README.md"
+
+[dependencies]
+# Error handling
+thiserror = "2.0"
+
+# Data format — Arrow/Parquet
+arrow = { version = "54", features = ["prettyprint", "ipc"] }
+parquet = { version = "54", features = ["arrow"] }
+
+# Storage engines — native WOS (custom SSTable), no sled dependency
+dashmap = "6.1"
+lru = "0.12"
+crossbeam-skiplist = "0.1"
+parking_lot = "0.12"
+
+# Performance
+ahash = "0.8"
+smallvec = "1.15"
+rayon = "1.10"
+num_cpus = "1.16"
+# Stable SIMD abstraction (wide crate — no nightly required)
+wide = "0.7"
+
+# Logging (zero-cost in release)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"], optional = true }
+sqlparser = "0.52"
+
+# WAL serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bincode = "1"
+
+# Async runtime (Replication broadcast channels)
+tokio = { version = "1", features = ["sync", "rt", "macros", "rt-multi-thread", "time", "net", "io-util"] }
+
+# QUIC transport — s2n-quic (기본 포함)
+s2n-quic = "1"
+rcgen = "0.13"
+
+# Cron scheduling
+cron = "0.12"
+chrono = "0.4"
+
+# Compression and Checksum
+zstd = "0.13"
+# Erasure Coding
+reed-solomon-erasure = "6.0"
+
+# Encryption — AEAD ciphers + key derivation
+aes-gcm-siv = "0.11"
+chacha20poly1305 = "0.10"
+rand = "0.8"
+crc32fast = "1.4"
+hkdf = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+tempfile = "3.24"
+bytes = "1.0"
+futures = "0.3.32"
+
+[dev-dependencies]
+# 유닛 테스트에는 [dependencies]의 항목들이 사용됩니다.
+
+[features]
+default = ["wal", "mvcc", "index"]
+wal = []
+mvcc = []
+index = []
+minimal = []  # 미구현 예약 feature
+jit = []      # 미구현 예약 feature
+gpu = ["cudarc"]
+logging = ["tracing-subscriber"]
+
+[dependencies.cudarc]
+version = "0.19.2"
+optional = true
+features = ["driver", "nvrtc", "cuda-12050"]
+
+

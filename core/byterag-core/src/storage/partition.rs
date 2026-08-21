@@ -1,0 +1,401 @@
+//! 파티셔닝 — Range / Hash / List 파티션 키 기반 물리적 분할
+//!
+//! 파티션된 테이블은 N개의 sub-테이블 (`table__p_part_0`, ...) 로 저장됩니다.
+//! 라우팅 함수가 key 값 → sub-table 이름을 결정합니다.
+//!
+//! # 사용 예
+//!
+//! ```rust
+//! use byterag_core::storage::partition::{PartitionMap, PartitionType, PartitionValue};
+//!
+//! let map = PartitionMap {
+//!     table: "users".into(),
+//!     partition_type: PartitionType::Hash {
+//!         column: "id".into(),
+//!         num_partitions: 4,
+//!     },
+//!     num_partitions: 4,
+//! };
+//!
+//! let sub_table = map.route_key(&PartitionValue::Int(42));
+//! assert!(sub_table.starts_with("users__p_part_"));
+//! ```
+
+/// 파티션 키 값 — i64 정수, 문자열, 부동소수점 지원
+#[derive(Debug, Clone, PartialEq)]
+pub enum PartitionValue {
+    Int(i64),
+    Float(f64),
+    Text(String),
+}
+
+impl PartitionValue {
+    fn as_i64(&self) -> i64 {
+        match self {
+            PartitionValue::Int(v) => *v,
+            PartitionValue::Float(v) => *v as i64,
+            PartitionValue::Text(s) => s.parse::<i64>().unwrap_or(0),
+        }
+    }
+
+    fn to_string_repr(&self) -> String {
+        match self {
+            PartitionValue::Int(v) => v.to_string(),
+            PartitionValue::Float(v) => v.to_string(),
+            PartitionValue::Text(s) => s.clone(),
+        }
+    }
+}
+
+/// 파티션 라우팅 결과
+#[derive(Debug, Clone, PartialEq)]
+pub enum RouteResult {
+    /// 기존 파티션으로 정상 라우팅됨 (서브테이블 이름 반환)
+    Routed(String),
+    /// 자동 확장이 필요함 (새로운 서브테이블 이름, 추가될 범위 (low, high))
+    NeedsExpansion {
+        new_table: String,
+        new_bounds: (i64, i64),
+    },
+}
+
+/// 파티션 타입
+#[derive(Debug, Clone)]
+pub enum PartitionType {
+    /// 범위 파티션: 각 (low, high) 범위가 하나의 파티션 [low, high)
+    Range {
+        column: String,
+        bounds: Vec<(i64, i64)>,
+        /// 자동 확장 설정: (간격, 최대 파티션 개수)
+        auto_expand_interval: Option<(i64, usize)>,
+    },
+    /// 해시 파티션: FNV1a 해시 후 num_partitions로 모듈러
+    Hash {
+        column: String,
+        num_partitions: usize,
+    },
+    /// 리스트 파티션: 각 파티션이 특정 값 목록 소유
+    List {
+        column: String,
+        values: Vec<Vec<String>>,
+    },
+}
+
+/// 파티션 맵 — 테이블 하나의 파티션 구성 전체를 담음
+#[derive(Debug, Clone)]
+pub struct PartitionMap {
+    /// 원본 테이블 이름
+    pub table: String,
+    /// 파티션 타입
+    pub partition_type: PartitionType,
+    /// 총 파티션 수
+    pub num_partitions: usize,
+}
+
+impl PartitionMap {
+    /// key 값을 받아 sub-table 이름 반환
+    ///
+    /// 반환 형식: `{table}__p_part_{idx}`
+    pub fn route_key(&self, key_value: &PartitionValue) -> String {
+        let idx = self.partition_index(key_value);
+        format!("{}__p_part_{}", self.table, idx)
+    }
+
+    fn partition_index(&self, key_value: &PartitionValue) -> usize {
+        match &self.partition_type {
+            PartitionType::Hash { num_partitions, .. } => {
+                let s = key_value.to_string_repr();
+                let h = fnv1a_hash(s.as_bytes());
+                h % num_partitions
+            }
+            PartitionType::Range { bounds, .. } => {
+                let v = key_value.as_i64();
+                bounds
+                    .iter()
+                    .position(|(lo, hi)| v >= *lo && v < *hi)
+                    .unwrap_or(self.num_partitions.saturating_sub(1))
+            }
+            PartitionType::List { values, .. } => {
+                let s = key_value.to_string_repr();
+                values
+                    .iter()
+                    .position(|group| group.iter().any(|v| v == &s))
+                    .unwrap_or(0)
+            }
+        }
+    }
+
+    /// WHERE 조건값으로 스캔할 파티션 목록 반환 (Pruning)
+    ///
+    /// - `filter_value = None` → 모든 파티션 반환 (full scan)
+    /// - `filter_value = Some(v)` → 해당 v가 속한 파티션만 반환
+    pub fn pruned_partitions(&self, filter_value: Option<&PartitionValue>) -> Vec<String> {
+        match filter_value {
+            None => (0..self.num_partitions)
+                .map(|i| format!("{}__p_part_{}", self.table, i))
+                .collect(),
+            Some(v) => vec![self.route_key(v)],
+        }
+    }
+
+    /// 모든 파티션의 sub-table 이름 반환
+    pub fn all_partitions(&self) -> Vec<String> {
+        self.pruned_partitions(None)
+    }
+
+    /// 자동 확장이 필요한지 파악하는 함수
+    pub fn route_or_expand(&self, key_value: &PartitionValue) -> RouteResult {
+        match &self.partition_type {
+            PartitionType::Range {
+                bounds,
+                auto_expand_interval,
+                ..
+            } => {
+                let v = key_value.as_i64();
+
+                // 기존 bounds 내에 있는지 확인
+                if let Some(pos) = bounds.iter().position(|(lo, hi)| v >= *lo && v < *hi) {
+                    return RouteResult::Routed(format!("{}__p_part_{}", self.table, pos));
+                }
+
+                if let Some((interval, max_parts)) = auto_expand_interval
+                    && self.num_partitions < *max_parts
+                {
+                    // 범위를 벗어났고 확장 가능함
+                    let last_hi = bounds.last().map(|(_, hi)| *hi).unwrap_or(0);
+                    if v >= last_hi {
+                        // 현재 v를 포함할 수 있는 범위 계산
+                        let diff = v - last_hi;
+                        let steps = (diff / interval) + 1;
+                        let new_hi = last_hi + steps * interval;
+
+                        return RouteResult::NeedsExpansion {
+                            new_table: format!("{}__p_part_{}", self.table, self.num_partitions),
+                            new_bounds: (last_hi, new_hi),
+                        };
+                    } else {
+                        // v < lo (첫 파티션보다 작은 경우 -> 과거 데이터)
+                        // 현재는 가장 과거 구간 확장은 복잡하므로 MVP에서는 그대로 `Routed` 처리하거나, 확장 안됨.
+                        // 가장 가까운 0번 파티션 반환
+                        return RouteResult::Routed(format!("{}__p_part_0", self.table));
+                    }
+                }
+
+                // 자동 확장이 켜져있지 않거나 최대 파티션에 도달한 경우 = 마지막 파티션 반환
+                let idx = self.num_partitions.saturating_sub(1);
+                RouteResult::Routed(format!("{}__p_part_{}", self.table, idx))
+            }
+            _ => RouteResult::Routed(self.route_key(key_value)),
+        }
+    }
+}
+
+/// FNV-1a 해시 (32-bit) — 결정론적, 가벼운 비암호학적 해시
+fn fnv1a_hash(data: &[u8]) -> usize {
+    const FNV_OFFSET: u32 = 2_166_136_261;
+    const FNV_PRIME: u32 = 16_777_619;
+    let mut hash = FNV_OFFSET;
+    for &byte in data {
+        hash ^= byte as u32;
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash as usize
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hash_partition_routing() {
+        let map = PartitionMap {
+            table: "users".into(),
+            partition_type: PartitionType::Hash {
+                column: "id".into(),
+                num_partitions: 4,
+            },
+            num_partitions: 4,
+        };
+        let t0 = map.route_key(&PartitionValue::Int(0));
+        let t3 = map.route_key(&PartitionValue::Int(3));
+        assert!(
+            t0.contains("part_"),
+            "서브테이블 이름에 part_ 포함되어야 함"
+        );
+        // 다른 값이 다른 파티션에 라우팅된다 (항상 참은 아니지만 0,3은 다름)
+        // 적어도 테이블 이름이 올바른지 확인
+        assert!(t0.starts_with("users__p_part_"));
+        assert!(t3.starts_with("users__p_part_"));
+    }
+
+    #[test]
+    fn test_hash_partition_all_valid_indices() {
+        let n = 8usize;
+        let map = PartitionMap {
+            table: "logs".into(),
+            partition_type: PartitionType::Hash {
+                column: "id".into(),
+                num_partitions: n,
+            },
+            num_partitions: n,
+        };
+        for i in 0i64..100 {
+            let sub = map.route_key(&PartitionValue::Int(i));
+            let idx: usize = sub.split('_').last().unwrap().parse().unwrap();
+            assert!(idx < n, "인덱스 {}가 범위 이상", idx);
+        }
+    }
+
+    #[test]
+    fn test_range_partition_routing() {
+        let map = PartitionMap {
+            table: "orders".into(),
+            partition_type: PartitionType::Range {
+                column: "amount".into(),
+                bounds: vec![(0, 100), (100, 500), (500, 10000)],
+                auto_expand_interval: None,
+            },
+            num_partitions: 3,
+        };
+        // 각 범위에 맞게 라우팅
+        let p0 = map.route_key(&PartitionValue::Int(50));
+        let p1 = map.route_key(&PartitionValue::Int(200));
+        let p2 = map.route_key(&PartitionValue::Int(1000));
+        assert!(p0.ends_with("_0"));
+        assert!(p1.ends_with("_1"));
+        assert!(p2.ends_with("_2"));
+    }
+
+    #[test]
+    fn test_range_partition_pruning() {
+        let map = PartitionMap {
+            table: "logs".into(),
+            partition_type: PartitionType::Range {
+                column: "ts".into(),
+                bounds: vec![(0, 1000), (1000, 2000), (2000, 3000)],
+                auto_expand_interval: None,
+            },
+            num_partitions: 3,
+        };
+        let partitions = map.pruned_partitions(Some(&PartitionValue::Int(1500)));
+        assert_eq!(partitions.len(), 1, "단일 파티션만 스캔해야 함");
+        assert!(partitions[0].ends_with("_1"), "1000-2000 범위는 파티션 1");
+
+        // 필터 없으면 전체 스캔
+        let all = map.pruned_partitions(None);
+        assert_eq!(all.len(), 3);
+    }
+
+    #[test]
+    fn test_list_partition_routing() {
+        let map = PartitionMap {
+            table: "regions".into(),
+            partition_type: PartitionType::List {
+                column: "country".into(),
+                values: vec![
+                    vec!["KR".into(), "JP".into()],
+                    vec!["US".into(), "CA".into()],
+                ],
+            },
+            num_partitions: 2,
+        };
+        let kr = map.route_key(&PartitionValue::Text("KR".into()));
+        let us = map.route_key(&PartitionValue::Text("US".into()));
+        assert!(kr.ends_with("_0"));
+        assert!(us.ends_with("_1"));
+    }
+
+    #[test]
+    fn test_all_partitions() {
+        let map = PartitionMap {
+            table: "data".into(),
+            partition_type: PartitionType::Hash {
+                column: "id".into(),
+                num_partitions: 5,
+            },
+            num_partitions: 5,
+        };
+        let all = map.all_partitions();
+        assert_eq!(all.len(), 5);
+        for (i, name) in all.iter().enumerate() {
+            assert_eq!(*name, format!("data__p_part_{}", i));
+        }
+    }
+
+    #[test]
+    fn test_fnv1a_hash_deterministic() {
+        let h1 = fnv1a_hash(b"hello");
+        let h2 = fnv1a_hash(b"hello");
+        assert_eq!(h1, h2, "FNV1a는 결정론적이어야 함");
+
+        let h3 = fnv1a_hash(b"world");
+        assert_ne!(h1, h3, "다른 입력은 다른 해시");
+    }
+}
+
+// ═══════════════════════════════════════════
+// Phase 3 Synergy: Stats / Lifecycle / Tier
+// ═══════════════════════════════════════════
+
+/// 파티션별 통계 정보 — 쿼리 옵티마이저에 활용
+///
+/// # 사용 예
+/// ```rust
+/// use byterag_core::storage::partition::PartitionStats;
+/// let stats = PartitionStats {
+///     row_count: 1000,
+///     min_value: 0,
+///     max_value: 999,
+///     null_count: 5,
+///     distinct_count: 990,
+/// };
+/// assert_eq!(stats.row_count, 1000);
+/// ```
+#[derive(Debug, Clone, Default)]
+pub struct PartitionStats {
+    /// 파티션 내 총 행 수
+    pub row_count: usize,
+    /// 파티션 키의 최솟값
+    pub min_value: i64,
+    /// 파티션 키의 최댓값
+    pub max_value: i64,
+    /// 파티션 키의 NULL 수
+    pub null_count: usize,
+    /// 파티션 키의 고유값 수 (Distinct count)
+    pub distinct_count: usize,
+}
+
+/// 파티션 수명 주기 정책 — 자동 아카이빙 및 삭제
+///
+/// # 사용 예
+/// ```rust
+/// use byterag_core::storage::partition::PartitionLifecycle;
+/// let lc = PartitionLifecycle { archive_after_days: 90, delete_after_days: 365 };
+/// assert_eq!(lc.archive_after_days, 90);
+/// ```
+#[derive(Debug, Clone)]
+pub struct PartitionLifecycle {
+    /// N일 이상 지난 파티션을 고압축(아카이브) 상태로 전환
+    pub archive_after_days: u32,
+    /// N일 이상 지난 파티션을 삭제
+    pub delete_after_days: u32,
+}
+
+/// 파티션의 스토리지 티어 힌트 — Hot / Warm / Cold 분류
+///
+/// # 사용 예
+/// ```rust
+/// use byterag_core::storage::partition::PartitionTierHint;
+/// assert_eq!(PartitionTierHint::default(), PartitionTierHint::Hot);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PartitionTierHint {
+    /// 최근 데이터 — Delta/Cache (Tier 1-2)에 우선 배치
+    #[default]
+    Hot,
+    /// 중간 데이터 — WOS (Tier 3)에 배치
+    Warm,
+    /// 오래된 데이터 — ROS, 고압축 (Tier 5)에 배치
+    Cold,
+}
+

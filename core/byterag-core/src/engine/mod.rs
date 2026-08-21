@@ -1,0 +1,62 @@
+//! Database Engine Module
+
+pub mod async_api;
+pub mod automation_api;
+pub mod benchmark;
+pub mod compaction;
+pub mod constructors;
+pub mod crud;
+pub mod database;
+pub mod ddl_api;
+pub mod delta_variant;
+pub mod feature_flags;
+pub mod index;
+pub mod index_versioning;
+pub mod lifecycle;
+pub mod metadata;
+pub mod parallel_engine;
+pub mod plan;
+pub mod policy;
+pub mod query_builder;
+pub mod query_builder_api;
+pub mod rollback;
+pub mod schema_builder;
+pub mod schema_builder_api;
+pub mod schema_versioning;
+pub mod serialization;
+pub mod snapshot;
+pub mod stream;
+pub mod stream_ingester;
+pub mod types;
+pub mod udf_api;
+pub mod utilities;
+pub mod workload_analyzer;
+pub mod wos_variant;
+
+#[cfg(test)]
+mod async_tests;
+#[cfg(test)]
+mod cas_tests;
+#[cfg(test)]
+mod parallel_engine_tests;
+#[cfg(test)]
+mod serde_tests;
+
+pub use benchmark::{BenchmarkResult, BenchmarkRunner};
+pub use database::Database;
+pub use delta_variant::DeltaVariant;
+pub use feature_flags::{Feature, FeatureFlags};
+pub use lifecycle::LifecycleWorker;
+pub use metadata::{FieldMetadata, IndexMetadata, SchemaMetadata};
+pub use parallel_engine::{
+    DbConfig, DirtyBufferMode, ParallelExecutionEngine, ParallelismConfig, ParallelizationPolicy,
+};
+pub use policy::{StorageStrategy, TablePolicy};
+pub use rollback::{Checkpoint, RollbackManager};
+pub use schema_builder::SchemaBuilder;
+pub use serialization::{SerializationRegistry, TwoLevelCache};
+pub use snapshot::{DatabaseSnapshot, TableData};
+pub use stream_ingester::{StreamEvent, StreamIngester};
+pub use types::{DurabilityLevel, TablePersistence};
+pub use wos_variant::WosVariant;
+

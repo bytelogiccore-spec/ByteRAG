@@ -1,0 +1,17 @@
+[package]
+name = "byterag-py"
+version.workspace = true
+edition = "2021"
+authors = ["ByteRAG Team"]
+description = "PyO3 native Python bindings for ByteRAG database"
+
+[lib]
+name = "byterag_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+byterag-core = { path = "../byterag-core", version = "0.1.0" }
+
+
+
