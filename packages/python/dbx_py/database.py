@@ -372,8 +372,10 @@ class Database:
             lib_name = "libbyterag_ffi.so"
         
         search_paths = [
-            Path(__file__).parent.parent.parent.parent / "core" / "byterag-ffi" / "target" / "release" / lib_name,
             Path(__file__).parent / lib_name,
+            Path(__file__).parent.parent.parent / "target" / "release" / lib_name,
+            Path(__file__).parent.parent.parent / "target" / "debug" / lib_name,
+            Path(__file__).parent.parent.parent.parent / "core" / "byterag-ffi" / "target" / "release" / lib_name,
             lib_name,
         ]
         
