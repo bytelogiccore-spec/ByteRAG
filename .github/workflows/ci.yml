@@ -92,12 +92,6 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y mold clang
 
-      - name: Python 설치
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
       - name: Rust 설치
         uses: dtolnay/rust-toolchain@stable
 
@@ -106,21 +100,22 @@ jobs:
         with:
           key: ${{ runner.os }}-bindings-${{ matrix.package }}
 
-      - name: Node.js 설치 & 캐시
+      - name: Python 설치 (바인딩 공통/PyO3)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Node.js 설치
         if: matrix.package == 'byterag-node'
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: packages/nodejs/package-lock.json
 
-      - name: .NET 설치 & 캐시
+      - name: .NET 설치
         if: matrix.package == 'byterag-csharp'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-          cache: true
-          cache-dependency-path: packages/dotnet/DBX.Dotnet/DBX.Dotnet.csproj
 
       - name: 빌드 및 테스트 실행 (Node.js)
         if: matrix.package == 'byterag-node'

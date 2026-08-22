@@ -28,7 +28,7 @@ class BuildRustExtension(build_py):
         
         # Copy the built library to the package directory
         target_dir = rust_project_root / "target" / "release"
-        package_dir = Path(__file__).parent / "byterag_py"
+        package_dir = Path(__file__).parent / "dbx_py"
         
         # Determine library name based on platform
         if sys.platform == "win32":
@@ -57,7 +57,7 @@ setup(
         'build_py': BuildRustExtension,
     },
     package_data={
-        'byterag_py': ['*.dll', '*.so', '*.dylib'],
+        'dbx_py': ['*.dll', '*.so', '*.dylib'],
     },
     include_package_data=True,
 )
