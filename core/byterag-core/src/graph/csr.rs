@@ -15,6 +15,12 @@ pub struct CsrGraph {
     pub id_to_name: Vec<String>,
 }
 
+impl Default for CsrGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CsrGraph {
     pub fn new() -> Self {
         Self {

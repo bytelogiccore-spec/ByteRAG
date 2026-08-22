@@ -981,7 +981,7 @@ impl Database {
         let mut index = crate::vector::FlatVectorIndex::new(dim, metric);
 
         for (key, val_bytes) in entries {
-            if val_bytes.len() == dim * std::mem::size_of::<f32>() {
+            if val_bytes.len() == std::mem::size_of_val(query) {
                 let vec_slice: &[f32] = unsafe {
                     std::slice::from_raw_parts(
                         val_bytes.as_ptr() as *const f32,

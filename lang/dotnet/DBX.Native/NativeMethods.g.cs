@@ -21,248 +21,248 @@ namespace DBX.Native
         /// <summary>
         ///  Open an in-memory database
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_open_in_memory", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern DbxHandle* dbx_open_in_memory();
+        [DllImport(__DllName, EntryPoint = "byterag_open_in_memory", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern DbxHandle* byterag_open_in_memory();
 
         /// <summary>
         ///  Open a database at the given path
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern DbxHandle* dbx_open(byte* path);
+        [DllImport(__DllName, EntryPoint = "byterag_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern DbxHandle* byterag_open(byte* path);
 
         /// <summary>
         ///  Load a database from a snapshot file
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_load_from_file", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern DbxHandle* dbx_load_from_file(byte* path);
+        [DllImport(__DllName, EntryPoint = "byterag_load_from_file", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern DbxHandle* byterag_load_from_file(byte* path);
 
         /// <summary>
         ///  Insert a key-value pair into a table
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_insert", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_insert(DbxHandle* handle, byte* table, byte* key, nuint key_len, byte* value, nuint value_len);
+        [DllImport(__DllName, EntryPoint = "byterag_insert", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_insert(DbxHandle* handle, byte* table, byte* key, nuint key_len, byte* value, nuint value_len);
 
         /// <summary>
         ///  Get a value by key from a table
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_get", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_get(DbxHandle* handle, byte* table, byte* key, nuint key_len, byte** out_value, nuint* out_len);
+        [DllImport(__DllName, EntryPoint = "byterag_get", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_get(DbxHandle* handle, byte* table, byte* key, nuint key_len, byte** out_value, nuint* out_len);
 
         /// <summary>
         ///  Delete a key from a table
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_delete", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_delete(DbxHandle* handle, byte* table, byte* key, nuint key_len);
+        [DllImport(__DllName, EntryPoint = "byterag_delete", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_delete(DbxHandle* handle, byte* table, byte* key, nuint key_len);
 
         /// <summary>
         ///  Insert multiple key-value pairs at once (batch)
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_insert_batch", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_insert_batch(DbxHandle* handle, byte* table, byte** keys, nuint* key_lens, byte** values, nuint* value_lens, nuint count);
+        [DllImport(__DllName, EntryPoint = "byterag_insert_batch", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_insert_batch(DbxHandle* handle, byte* table, byte** keys, nuint* key_lens, byte** values, nuint* value_lens, nuint count);
 
         /// <summary>
         ///  Scan all key-value pairs in a table
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_scan", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_scan(DbxHandle* handle, byte* table, DbxScanResult** out_result);
+        [DllImport(__DllName, EntryPoint = "byterag_scan", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_scan(DbxHandle* handle, byte* table, DbxScanResult** out_result);
 
         /// <summary>
         ///  Scan a range of keys [start_key, end_key)
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_range", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_range(DbxHandle* handle, byte* table, byte* start_key, nuint start_key_len, byte* end_key, nuint end_key_len, DbxScanResult** out_result);
+        [DllImport(__DllName, EntryPoint = "byterag_range", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_range(DbxHandle* handle, byte* table, byte* start_key, nuint start_key_len, byte* end_key, nuint end_key_len, DbxScanResult** out_result);
 
         /// <summary>
         ///  Get the number of entries in a scan result
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_scan_result_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern nuint dbx_scan_result_count(DbxScanResult* result);
+        [DllImport(__DllName, EntryPoint = "byterag_scan_result_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern nuint byterag_scan_result_count(DbxScanResult* result);
 
         /// <summary>
         ///  Get a key from a scan result by index
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_scan_result_key", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_scan_result_key(DbxScanResult* result, nuint index, byte** out_key, nuint* out_key_len);
+        [DllImport(__DllName, EntryPoint = "byterag_scan_result_key", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_scan_result_key(DbxScanResult* result, nuint index, byte** out_key, nuint* out_key_len);
 
         /// <summary>
         ///  Get a value from a scan result by index
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_scan_result_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_scan_result_value(DbxScanResult* result, nuint index, byte** out_value, nuint* out_value_len);
+        [DllImport(__DllName, EntryPoint = "byterag_scan_result_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_scan_result_value(DbxScanResult* result, nuint index, byte** out_value, nuint* out_value_len);
 
         /// <summary>
         ///  Free a scan result
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_scan_result_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void dbx_scan_result_free(DbxScanResult* result);
+        [DllImport(__DllName, EntryPoint = "byterag_scan_result_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void byterag_scan_result_free(DbxScanResult* result);
 
         /// <summary>
         ///  Count rows in a table
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_count(DbxHandle* handle, byte* table, nuint* out_count);
+        [DllImport(__DllName, EntryPoint = "byterag_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_count(DbxHandle* handle, byte* table, nuint* out_count);
 
         /// <summary>
         ///  Flush database to disk
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_flush", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_flush(DbxHandle* handle);
+        [DllImport(__DllName, EntryPoint = "byterag_flush", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_flush(DbxHandle* handle);
 
         /// <summary>
         ///  Get all table names
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_table_names", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_table_names(DbxHandle* handle, DbxStringList** out_list);
+        [DllImport(__DllName, EntryPoint = "byterag_table_names", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_table_names(DbxHandle* handle, DbxStringList** out_list);
 
         /// <summary>
         ///  Get the number of strings in a string list
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_string_list_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern nuint dbx_string_list_count(DbxStringList* list);
+        [DllImport(__DllName, EntryPoint = "byterag_string_list_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern nuint byterag_string_list_count(DbxStringList* list);
 
         /// <summary>
         ///  Get a string from a string list by index
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_string_list_get", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_string_list_get(DbxStringList* list, nuint index, byte** out_str, nuint* out_len);
+        [DllImport(__DllName, EntryPoint = "byterag_string_list_get", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_string_list_get(DbxStringList* list, nuint index, byte** out_str, nuint* out_len);
 
         /// <summary>
         ///  Free a string list
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_string_list_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void dbx_string_list_free(DbxStringList* list);
+        [DllImport(__DllName, EntryPoint = "byterag_string_list_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void byterag_string_list_free(DbxStringList* list);
 
         /// <summary>
         ///  Run garbage collection
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_gc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_gc(DbxHandle* handle, nuint* out_deleted);
+        [DllImport(__DllName, EntryPoint = "byterag_gc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_gc(DbxHandle* handle, nuint* out_deleted);
 
         /// <summary>
         ///  Check if the database is encrypted. Returns 1 if encrypted, 0 if not.
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_is_encrypted", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_is_encrypted(DbxHandle* handle);
+        [DllImport(__DllName, EntryPoint = "byterag_is_encrypted", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_is_encrypted(DbxHandle* handle);
 
         /// <summary>
         ///  Execute a SQL statement. Returns the number of affected/returned rows.
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_execute_sql", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_execute_sql(DbxHandle* handle, byte* sql, nuint* out_affected);
+        [DllImport(__DllName, EntryPoint = "byterag_execute_sql", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_execute_sql(DbxHandle* handle, byte* sql, nuint* out_affected);
 
         /// <summary>
         ///  Create an index on a table column
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_create_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_create_index(DbxHandle* handle, byte* table, byte* column);
+        [DllImport(__DllName, EntryPoint = "byterag_create_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_create_index(DbxHandle* handle, byte* table, byte* column);
 
         /// <summary>
         ///  Drop an index from a table column
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_drop_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_drop_index(DbxHandle* handle, byte* table, byte* column);
+        [DllImport(__DllName, EntryPoint = "byterag_drop_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_drop_index(DbxHandle* handle, byte* table, byte* column);
 
         /// <summary>
         ///  Check if an index exists. Returns 1 if exists, 0 if not.
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_has_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_has_index(DbxHandle* handle, byte* table, byte* column);
+        [DllImport(__DllName, EntryPoint = "byterag_has_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_has_index(DbxHandle* handle, byte* table, byte* column);
 
         /// <summary>
         ///  Save the in-memory database to a file
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_save_to_file", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_save_to_file(DbxHandle* handle, byte* path);
+        [DllImport(__DllName, EntryPoint = "byterag_save_to_file", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_save_to_file(DbxHandle* handle, byte* path);
 
         /// <summary>
         ///  Get the current MVCC timestamp
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_current_timestamp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ulong dbx_current_timestamp(DbxHandle* handle);
+        [DllImport(__DllName, EntryPoint = "byterag_current_timestamp", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern ulong byterag_current_timestamp(DbxHandle* handle);
 
         /// <summary>
         ///  Allocate a new commit timestamp
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_allocate_commit_ts", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern ulong dbx_allocate_commit_ts(DbxHandle* handle);
+        [DllImport(__DllName, EntryPoint = "byterag_allocate_commit_ts", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern ulong byterag_allocate_commit_ts(DbxHandle* handle);
 
         /// <summary>
         ///  Insert a versioned key-value pair (MVCC)
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_insert_versioned", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_insert_versioned(DbxHandle* handle, byte* table, byte* key, nuint key_len, byte* value, nuint value_len, ulong commit_ts);
+        [DllImport(__DllName, EntryPoint = "byterag_insert_versioned", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_insert_versioned(DbxHandle* handle, byte* table, byte* key, nuint key_len, byte* value, nuint value_len, ulong commit_ts);
 
         /// <summary>
         ///  Read a specific version of a key (Snapshot Read)
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_get_snapshot", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_get_snapshot(DbxHandle* handle, byte* table, byte* key, nuint key_len, ulong read_ts, byte** out_value, nuint* out_len);
+        [DllImport(__DllName, EntryPoint = "byterag_get_snapshot", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_get_snapshot(DbxHandle* handle, byte* table, byte* key, nuint key_len, ulong read_ts, byte** out_value, nuint* out_len);
 
         /// <summary>
-        ///  Free a value returned by dbx_get or dbx_get_snapshot
+        ///  Free a value returned by byterag_get or byterag_get_snapshot
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_free_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void dbx_free_value(byte* value, nuint len);
+        [DllImport(__DllName, EntryPoint = "byterag_free_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void byterag_free_value(byte* value, nuint len);
 
         /// <summary>
         ///  Close a database
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_close", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void dbx_close(DbxHandle* handle);
+        [DllImport(__DllName, EntryPoint = "byterag_close", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void byterag_close(DbxHandle* handle);
 
         /// <summary>
         ///  Begin a transaction
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_begin_transaction", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern DbxTransaction* dbx_begin_transaction(DbxHandle* handle);
+        [DllImport(__DllName, EntryPoint = "byterag_begin_transaction", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern DbxTransaction* byterag_begin_transaction(DbxHandle* handle);
 
         /// <summary>
         ///  Insert a key-value pair in a transaction (buffered)
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_transaction_insert", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_transaction_insert(DbxTransaction* tx, byte* table, byte* key, nuint key_len, byte* value, nuint value_len);
+        [DllImport(__DllName, EntryPoint = "byterag_transaction_insert", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_transaction_insert(DbxTransaction* tx, byte* table, byte* key, nuint key_len, byte* value, nuint value_len);
 
         /// <summary>
         ///  Delete a key in a transaction (buffered)
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_transaction_delete", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_transaction_delete(DbxTransaction* tx, byte* table, byte* key, nuint key_len);
+        [DllImport(__DllName, EntryPoint = "byterag_transaction_delete", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_transaction_delete(DbxTransaction* tx, byte* table, byte* key, nuint key_len);
 
         /// <summary>
         ///  Commit a transaction
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_transaction_commit", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_transaction_commit(DbxTransaction* tx);
+        [DllImport(__DllName, EntryPoint = "byterag_transaction_commit", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_transaction_commit(DbxTransaction* tx);
 
         /// <summary>
         ///  Rollback a transaction
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_transaction_rollback", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void dbx_transaction_rollback(DbxTransaction* tx);
+        [DllImport(__DllName, EntryPoint = "byterag_transaction_rollback", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void byterag_transaction_rollback(DbxTransaction* tx);
 
         /// <summary>
         ///  Zero-copy scan - returns flat buffer with serialized key-value pairs
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_scan_zero_copy", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_scan_zero_copy(DbxHandle* handle, byte* table, DbxZeroCopyScanResult** out_result);
+        [DllImport(__DllName, EntryPoint = "byterag_scan_zero_copy", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_scan_zero_copy(DbxHandle* handle, byte* table, DbxZeroCopyScanResult** out_result);
 
         /// <summary>
         ///  Get raw data pointer from zero-copy scan result (zero-copy access)
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_zero_copy_result_data", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int dbx_zero_copy_result_data(DbxZeroCopyScanResult* result, byte** out_data, nuint* out_len);
+        [DllImport(__DllName, EntryPoint = "byterag_zero_copy_result_data", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern int byterag_zero_copy_result_data(DbxZeroCopyScanResult* result, byte** out_data, nuint* out_len);
 
         /// <summary>
         ///  Get count from zero-copy scan result
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_zero_copy_result_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern nuint dbx_zero_copy_result_count(DbxZeroCopyScanResult* result);
+        [DllImport(__DllName, EntryPoint = "byterag_zero_copy_result_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern nuint byterag_zero_copy_result_count(DbxZeroCopyScanResult* result);
 
         /// <summary>
         ///  Free zero-copy scan result
         /// </summary>
-        [DllImport(__DllName, EntryPoint = "dbx_zero_copy_result_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void dbx_zero_copy_result_free(DbxZeroCopyScanResult* result);
+        [DllImport(__DllName, EntryPoint = "byterag_zero_copy_result_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void byterag_zero_copy_result_free(DbxZeroCopyScanResult* result);
 
 
     }

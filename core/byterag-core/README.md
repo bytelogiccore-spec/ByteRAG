@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/byterag-core.svg)](https://crates.io/crates/byterag-core)
 [![docs.rs](https://docs.rs/byterag-core/badge.svg)](https://docs.rs/byterag-core)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Commercial-green.svg)](LICENSE)
-[![Guide](https://img.shields.io/badge/guide-GitHub%20Pages-blue)](https://bytelogiccore-spec.github.io/DBX/english/packages/rust)
+[![Guide](https://img.shields.io/badge/guide-GitHub%20Pages-blue)](https://bytelogiccore-spec.github.io/ByteRAG/)
 
 > **29x faster** than SQLite • Pure Rust • MVCC Transactions • 5-Tier Hybrid Storage
 
@@ -13,7 +13,7 @@
 
 ```toml
 [dependencies]
-byterag-core = "0.0.1-beta"
+byterag-core = "0.1.0"
 ```
 
 ## Quick Start

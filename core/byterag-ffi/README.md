@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/byterag-ffi.svg)](https://crates.io/crates/byterag-ffi)
 
-C FFI bindings for the DBX embedded database engine.
+C FFI bindings for the ByteRAG embedded database engine.
 
 This crate provides a C-compatible interface (`cdylib` + `staticlib`) to the `byterag-core` engine, enabling integration with C, C++, C#, Python, and Node.js.
 

@@ -16,13 +16,13 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Publish dbx-core
+      - name: Publish byterag-core
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
-        run: cargo publish -p dbx-core --no-verify
+        run: cargo publish -p byterag-core --no-verify
 
-      - name: Publish dbx-ffi
+      - name: Publish byterag-ffi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
-        run: cargo publish -p dbx-ffi --no-verify
+        run: cargo publish -p byterag-ffi --no-verify
 

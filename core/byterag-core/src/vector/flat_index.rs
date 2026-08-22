@@ -34,14 +34,14 @@ impl Eq for HeapEntry {}
 
 impl PartialOrd for HeapEntry {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Reverse for min-heap
-        other.score.partial_cmp(&self.score)
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for HeapEntry {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+        // Reverse for min-heap
+        other.score.partial_cmp(&self.score).unwrap_or(Ordering::Equal)
     }
 }
 
@@ -98,11 +98,11 @@ impl FlatVectorIndex {
 
             if heap.len() < top_k {
                 heap.push(HeapEntry { score, index: i });
-            } else if let Some(min_top) = heap.peek() {
-                if score > min_top.score {
-                    heap.pop();
-                    heap.push(HeapEntry { score, index: i });
-                }
+            } else if let Some(min_top) = heap.peek()
+                && score > min_top.score
+            {
+                heap.pop();
+                heap.push(HeapEntry { score, index: i });
             }
         }
 

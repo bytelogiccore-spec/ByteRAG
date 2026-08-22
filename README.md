@@ -1,5 +1,4 @@
 # ByteRAG — Ultra-Fast Embedded Multi-Model Database for AI & GraphRAG
-{: .fs-9 }
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/bytelogiccore-spec/ByteRAG)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -9,7 +8,6 @@
 ---
 
 **ByteRAG** is a high-performance, pure-Rust embedded database engine designed from the ground up for **AI Agents, Vector Search, Knowledge Graphs (GraphRAG), and HTAP workloads**. Built with an ultra-low latency **5-Tier Hybrid Storage** architecture (Delta → Cache → WOS → Index → ROS), ByteRAG unifies conversational context caching, vector similarity search, knowledge graph traversal, and analytical queries in a single embeddable binary.
-{: .fs-6 .fw-300 }
 
 ---
 
