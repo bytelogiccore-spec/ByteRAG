@@ -19,10 +19,15 @@ function findBinding() {
         if (fs.existsSync(tDir)) {
             const files = fs.readdirSync(tDir).filter(f => f.includes('byterag_node') || f.includes('byterag-node'));
             for (const f of files) {
-                if (f.endsWith('.node') || f.endsWith('.so') || f.endsWith('.dylib') || f.endsWith('.dll')) {
+                if (f.endsWith('.so') || f.endsWith('.dylib') || f.endsWith('.dll') || f.endsWith('.node')) {
+                    const src = path.join(tDir, f);
+                    const dest = path.join(__dirname, 'byterag-node.node');
                     try {
-                        return path.join(tDir, f);
-                    } catch (_) {}
+                        fs.copyFileSync(src, dest);
+                        return dest;
+                    } catch (_) {
+                        return src;
+                    }
                 }
             }
         }

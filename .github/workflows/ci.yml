@@ -131,7 +131,7 @@ jobs:
           cargo build --release -p byterag-ffi --locked
           cd packages/python
           pip install pytest setuptools wheel
-          pip install -e . --no-build-isolation
+          pip install . --no-build-isolation
           python test_simple.py
 
       - name: 빌드 실행 (C# / .NET)
