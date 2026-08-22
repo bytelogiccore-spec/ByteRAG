@@ -85,4 +85,3 @@ impl MultiDeviceCoordinator {
         Self
     }
 }
-

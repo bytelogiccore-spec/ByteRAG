@@ -225,5 +225,3 @@ mod tests {
         assert!(output.contains("byterag_cache_hit_rate 0.6667"));
     }
 }
-
-

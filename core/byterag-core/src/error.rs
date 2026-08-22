@@ -232,4 +232,3 @@ mod tests {
         assert!(err.to_string().contains("after commit"));
     }
 }
-

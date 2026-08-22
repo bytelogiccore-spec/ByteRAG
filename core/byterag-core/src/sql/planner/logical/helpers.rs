@@ -83,4 +83,3 @@ pub fn extract_usize(expr: &SqlExpr) -> ByteRagResult<usize> {
         ))),
     }
 }
-

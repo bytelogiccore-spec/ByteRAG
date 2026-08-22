@@ -1,8 +1,8 @@
 //! ByteRAG Native Code Graph Indexer
 //! Ingests AST code graphs directly into ByteRAG 5-Tier Native Storage
 
-use byterag_core::graph::csr::CsrGraph;
 use byterag_core::Database;
+use byterag_core::graph::csr::CsrGraph;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -24,8 +24,14 @@ fn collect_rs_files(dir: &Path, out: &mut Vec<PathBuf>) {
 
 fn main() -> byterag_core::ByteRagResult<()> {
     let args: Vec<String> = std::env::args().collect();
-    let project_root = args.get(1).cloned().unwrap_or_else(|| "d:/ByteLogicCore/modify/pumAI".to_string());
-    let output_dir = args.get(2).cloned().unwrap_or_else(|| format!("{}/.byterag", project_root));
+    let project_root = args
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| "d:/ByteLogicCore/modify/pumAI".to_string());
+    let output_dir = args
+        .get(2)
+        .cloned()
+        .unwrap_or_else(|| format!("{}/.byterag", project_root));
 
     println!("============================================================");
     println!(" 🚀 ByteRAG Native Rust In-Process GraphRAG Indexer");
@@ -50,7 +56,11 @@ fn main() -> byterag_core::ByteRagResult<()> {
     let mut total_symbols = 0;
 
     for file_path in &rs_files {
-        let rel_path = file_path.strip_prefix(root_path).unwrap_or(file_path).to_string_lossy().replace('\\', "/");
+        let rel_path = file_path
+            .strip_prefix(root_path)
+            .unwrap_or(file_path)
+            .to_string_lossy()
+            .replace('\\', "/");
         let file_node_id = format!("file:{}", rel_path);
 
         if let Ok(content) = fs::read_to_string(file_path) {
@@ -59,46 +69,79 @@ fn main() -> byterag_core::ByteRagResult<()> {
                 let line_no = line_idx + 1;
 
                 if line.starts_with("pub struct ") || line.starts_with("struct ") {
-                    if let Some(name) = line.split_whitespace().nth(if line.starts_with("pub") { 2 } else { 1 }) {
+                    if let Some(name) =
+                        line.split_whitespace()
+                            .nth(if line.starts_with("pub") { 2 } else { 1 })
+                    {
                         let clean_name = name.trim_end_matches('{').trim_end_matches(';').trim();
                         if !clean_name.is_empty() {
                             let struct_id = format!("struct:{}", clean_name);
-                            let payload = format!("{{\"type\":\"Struct\",\"name\":\"{}\",\"file\":\"{}\",\"line\":{}}}", clean_name, rel_path, line_no);
-                            
+                            let payload = format!(
+                                "{{\"type\":\"Struct\",\"name\":\"{}\",\"file\":\"{}\",\"line\":{}}}",
+                                clean_name, rel_path, line_no
+                            );
+
                             db.insert("kg_nodes", struct_id.as_bytes(), payload.as_bytes())?;
-                            db.insert("kg_edges_fwd", format!("{}:declares:{}", file_node_id, struct_id).as_bytes(), b"{}")?;
-                            
+                            db.insert(
+                                "kg_edges_fwd",
+                                format!("{}:declares:{}", file_node_id, struct_id).as_bytes(),
+                                b"{}",
+                            )?;
+
                             graph_edges.push((file_node_id.clone(), struct_id));
                             total_symbols += 1;
                         }
                     }
-                } else if line.starts_with("pub fn ") || line.starts_with("fn ") || line.starts_with("pub async fn ") || line.starts_with("async fn ") {
+                } else if line.starts_with("pub fn ")
+                    || line.starts_with("fn ")
+                    || line.starts_with("pub async fn ")
+                    || line.starts_with("async fn ")
+                {
                     let parts: Vec<&str> = line.split('(').collect();
                     if let Some(decl) = parts.first() {
                         if let Some(fn_name) = decl.split_whitespace().last() {
                             let clean_name = fn_name.trim();
-                            if !clean_name.is_empty() && clean_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                            if !clean_name.is_empty()
+                                && clean_name.chars().all(|c| c.is_alphanumeric() || c == '_')
+                            {
                                 let fn_id = format!("fn:{}", clean_name);
-                                let payload = format!("{{\"type\":\"Function\",\"name\":\"{}\",\"file\":\"{}\",\"line\":{}}}", clean_name, rel_path, line_no);
-                                
+                                let payload = format!(
+                                    "{{\"type\":\"Function\",\"name\":\"{}\",\"file\":\"{}\",\"line\":{}}}",
+                                    clean_name, rel_path, line_no
+                                );
+
                                 db.insert("kg_nodes", fn_id.as_bytes(), payload.as_bytes())?;
-                                db.insert("kg_edges_fwd", format!("{}:declares:{}", file_node_id, fn_id).as_bytes(), b"{}")?;
-                                
+                                db.insert(
+                                    "kg_edges_fwd",
+                                    format!("{}:declares:{}", file_node_id, fn_id).as_bytes(),
+                                    b"{}",
+                                )?;
+
                                 graph_edges.push((file_node_id.clone(), fn_id));
                                 total_symbols += 1;
                             }
                         }
                     }
                 } else if line.starts_with("pub enum ") || line.starts_with("enum ") {
-                    if let Some(name) = line.split_whitespace().nth(if line.starts_with("pub") { 2 } else { 1 }) {
+                    if let Some(name) =
+                        line.split_whitespace()
+                            .nth(if line.starts_with("pub") { 2 } else { 1 })
+                    {
                         let clean_name = name.trim_end_matches('{').trim();
                         if !clean_name.is_empty() {
                             let enum_id = format!("enum:{}", clean_name);
-                            let payload = format!("{{\"type\":\"Enum\",\"name\":\"{}\",\"file\":\"{}\",\"line\":{}}}", clean_name, rel_path, line_no);
-                            
+                            let payload = format!(
+                                "{{\"type\":\"Enum\",\"name\":\"{}\",\"file\":\"{}\",\"line\":{}}}",
+                                clean_name, rel_path, line_no
+                            );
+
                             db.insert("kg_nodes", enum_id.as_bytes(), payload.as_bytes())?;
-                            db.insert("kg_edges_fwd", format!("{}:declares:{}", file_node_id, enum_id).as_bytes(), b"{}")?;
-                            
+                            db.insert(
+                                "kg_edges_fwd",
+                                format!("{}:declares:{}", file_node_id, enum_id).as_bytes(),
+                                b"{}",
+                            )?;
+
                             graph_edges.push((file_node_id.clone(), enum_id));
                             total_symbols += 1;
                         }
@@ -123,7 +166,10 @@ fn main() -> byterag_core::ByteRagResult<()> {
     if let Some(first_file) = graph_edges.first() {
         let test_node = &first_file.0;
         if let Some(subgraph) = csr.multi_hop_traversal(test_node, 2) {
-            println!("\n🔍 [ByteRAG Verification] Multi-hop Traversal from '{}':", test_node);
+            println!(
+                "\n🔍 [ByteRAG Verification] Multi-hop Traversal from '{}':",
+                test_node
+            );
             println!("   - Reachable Nodes (Depth 2): {}", subgraph.nodes.len());
             println!("   - Traversed Edges: {}", subgraph.edges.len());
         }

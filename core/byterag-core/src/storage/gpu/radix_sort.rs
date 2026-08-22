@@ -62,7 +62,9 @@ impl GpuManager {
             let func = self
                 .module
                 .load_function("radix_sort_pass_i32")
-                .map_err(|_| ByteRagError::Gpu("Kernel radix_sort_pass_i32 not found".to_string()))?;
+                .map_err(|_| {
+                    ByteRagError::Gpu("Kernel radix_sort_pass_i32 not found".to_string())
+                })?;
 
             let cfg = LaunchConfig::for_num_elems(n as u32);
             let n_i32 = n as i32;
@@ -78,8 +80,9 @@ impl GpuManager {
             builder.arg(&n_i32);
             builder.arg(&bit_shift_i32);
 
-            unsafe { builder.launch(cfg) }
-                .map_err(|e| ByteRagError::Gpu(format!("Radix sort pass {} failed: {:?}", pass, e)))?;
+            unsafe { builder.launch(cfg) }.map_err(|e| {
+                ByteRagError::Gpu(format!("Radix sort pass {} failed: {:?}", pass, e))
+            })?;
         }
 
         stream
@@ -154,7 +157,9 @@ impl GpuManager {
         let func = self
             .module
             .load_function("sorted_group_by_sum_i32")
-            .map_err(|_| ByteRagError::Gpu("Kernel sorted_group_by_sum_i32 not found".to_string()))?;
+            .map_err(|_| {
+                ByteRagError::Gpu("Kernel sorted_group_by_sum_i32 not found".to_string())
+            })?;
 
         let cfg = LaunchConfig::for_num_elems(n as u32);
         let n_i32 = n as i32;
@@ -200,4 +205,3 @@ impl GpuManager {
         Ok(results)
     }
 }
-

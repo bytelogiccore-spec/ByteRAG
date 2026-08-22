@@ -486,4 +486,3 @@ impl ScanResult {
         Ok(pairs)
     }
 }
-

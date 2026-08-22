@@ -263,5 +263,3 @@ fn test_parallel_parser_callback_error_propagation() {
 
     assert!(result.is_err());
 }
-
-

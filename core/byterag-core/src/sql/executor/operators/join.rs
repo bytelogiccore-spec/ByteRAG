@@ -329,7 +329,10 @@ impl HashJoinOperator {
         Ok(total)
     }
 
-    fn next_partitioned(&mut self, current_part_ptr: &mut usize) -> ByteRagResult<Option<RecordBatch>> {
+    fn next_partitioned(
+        &mut self,
+        current_part_ptr: &mut usize,
+    ) -> ByteRagResult<Option<RecordBatch>> {
         loop {
             if let Some(right_batches) = &self.right_batches
                 && self.right_batch_idx < right_batches.len()
@@ -729,4 +732,3 @@ fn create_column_with_nulls(
         }),
     }
 }
-

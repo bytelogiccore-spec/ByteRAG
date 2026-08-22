@@ -38,5 +38,3 @@ impl Database {
         self.create_table(name, schema)
     }
 }
-
-

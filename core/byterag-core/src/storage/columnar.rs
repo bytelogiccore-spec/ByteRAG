@@ -252,7 +252,9 @@ impl ColumnarStore {
                 }
                 Ok(Arc::new(builder.finish()))
             }
-            dt => Err(ByteRagError::Schema(format!("unsupported data type: {dt:?}"))),
+            dt => Err(ByteRagError::Schema(format!(
+                "unsupported data type: {dt:?}"
+            ))),
         }
     }
 }
@@ -459,4 +461,3 @@ mod tests {
         assert_eq!(names.value(999), "user_999");
     }
 }
-

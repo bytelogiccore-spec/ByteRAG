@@ -3,8 +3,8 @@
 // 사용법:
 // cargo bench --bench byterag_baseline
 
-use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use std::sync::Arc;
 
 const SMALL_SIZE: usize = 100;
@@ -129,4 +129,3 @@ criterion_group!(
     bench_byterag_mixed_workload
 );
 criterion_main!(benches);
-

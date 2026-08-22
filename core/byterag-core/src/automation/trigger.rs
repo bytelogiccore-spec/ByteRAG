@@ -90,7 +90,10 @@ impl Trigger {
     /// JSON에서 Trigger 역직렬화
     pub fn from_json(json: &str) -> crate::error::ByteRagResult<Self> {
         serde_json::from_str(json).map_err(|e| {
-            crate::error::ByteRagError::Serialization(format!("Failed to deserialize trigger: {}", e))
+            crate::error::ByteRagError::Serialization(format!(
+                "Failed to deserialize trigger: {}",
+                e
+            ))
         })
     }
 }
@@ -140,4 +143,3 @@ mod tests {
         assert_eq!(trigger.operation, deserialized.operation);
     }
 }
-

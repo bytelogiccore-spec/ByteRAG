@@ -58,4 +58,3 @@ impl PhysicalOperator for FilterOperator {
         self.input.reset()
     }
 }
-

@@ -87,4 +87,3 @@ fn test_partition_compression_overwrite() -> ByteRagResult<()> {
     assert_eq!(config.level(), Some(9));
     Ok(())
 }
-

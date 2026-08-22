@@ -49,7 +49,11 @@ struct NamedParam {
 
 /// SQL에 파라미터를 적용하여 최종 실행 가능한 SQL 생성
 /// 문자열 리터럴('...') 및 식별자("...") 내부에 있는 placeholder는 무시합니다.
-fn apply_params(sql: &str, positional: &[ScalarValue], named: &[NamedParam]) -> ByteRagResult<String> {
+fn apply_params(
+    sql: &str,
+    positional: &[ScalarValue],
+    named: &[NamedParam],
+) -> ByteRagResult<String> {
     if !positional.is_empty() && !named.is_empty() {
         return Err(ByteRagError::InvalidOperation {
             message: "positional과 named 파라미터를 동시에 사용할 수 없습니다".to_string(),
@@ -682,4 +686,3 @@ mod tests {
         assert!(matches!(Some(10i32).into_scalar(), ScalarValue::Int32(10)));
     }
 }
-

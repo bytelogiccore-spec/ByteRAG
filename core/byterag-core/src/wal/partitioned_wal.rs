@@ -329,4 +329,3 @@ mod tests {
         assert!(dir.path().join("orders.checkpoint").exists());
     }
 }
-

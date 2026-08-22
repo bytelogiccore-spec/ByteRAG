@@ -268,4 +268,3 @@ mod tests {
         assert_eq!(store.entry_count(), 3);
     }
 }
-

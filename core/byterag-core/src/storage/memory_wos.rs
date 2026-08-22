@@ -142,4 +142,3 @@ mod tests {
         assert_eq!(backend.count("test").unwrap(), 2);
     }
 }
-

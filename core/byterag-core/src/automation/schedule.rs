@@ -73,14 +73,20 @@ impl Schedule {
     /// JSON으로 직렬화
     pub fn to_json(&self) -> crate::error::ByteRagResult<String> {
         serde_json::to_string(self).map_err(|e| {
-            crate::error::ByteRagError::Serialization(format!("Failed to serialize schedule: {}", e))
+            crate::error::ByteRagError::Serialization(format!(
+                "Failed to serialize schedule: {}",
+                e
+            ))
         })
     }
 
     /// JSON에서 역직렬화
     pub fn from_json(json: &str) -> crate::error::ByteRagResult<Self> {
         serde_json::from_str(json).map_err(|e| {
-            crate::error::ByteRagError::Serialization(format!("Failed to deserialize schedule: {}", e))
+            crate::error::ByteRagError::Serialization(format!(
+                "Failed to deserialize schedule: {}",
+                e
+            ))
         })
     }
 }
@@ -133,4 +139,3 @@ mod tests {
         assert_eq!(schedule.enabled, deserialized.enabled);
     }
 }
-

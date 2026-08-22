@@ -243,9 +243,9 @@ impl EncryptionConfig {
             }
             EncryptionAlgorithm::ChaCha20Poly1305 => {
                 let cipher = ChaCha20Poly1305::new(GenericArray::from_slice(&self.key));
-                cipher
-                    .encrypt(nonce, plaintext)
-                    .map_err(|e| ByteRagError::Encryption(format!("ChaCha20 encrypt failed: {}", e)))?
+                cipher.encrypt(nonce, plaintext).map_err(|e| {
+                    ByteRagError::Encryption(format!("ChaCha20 encrypt failed: {}", e))
+                })?
             }
         };
 
@@ -278,15 +278,15 @@ impl EncryptionConfig {
         match self.algorithm {
             EncryptionAlgorithm::Aes256GcmSiv => {
                 let cipher = Aes256GcmSiv::new(GenericArray::from_slice(&self.key));
-                cipher
-                    .decrypt(nonce, ciphertext)
-                    .map_err(|e| ByteRagError::Encryption(format!("AES-GCM-SIV decrypt failed: {}", e)))
+                cipher.decrypt(nonce, ciphertext).map_err(|e| {
+                    ByteRagError::Encryption(format!("AES-GCM-SIV decrypt failed: {}", e))
+                })
             }
             EncryptionAlgorithm::ChaCha20Poly1305 => {
                 let cipher = ChaCha20Poly1305::new(GenericArray::from_slice(&self.key));
-                cipher
-                    .decrypt(nonce, ciphertext)
-                    .map_err(|e| ByteRagError::Encryption(format!("ChaCha20 decrypt failed: {}", e)))
+                cipher.decrypt(nonce, ciphertext).map_err(|e| {
+                    ByteRagError::Encryption(format!("ChaCha20 decrypt failed: {}", e))
+                })
             }
         }
     }
@@ -590,4 +590,3 @@ mod tests {
         );
     }
 }
-

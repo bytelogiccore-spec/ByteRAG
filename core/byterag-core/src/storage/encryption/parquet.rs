@@ -48,7 +48,11 @@ pub struct EncryptedParquetReader;
 
 impl EncryptedParquetWriter {
     /// Write a single RecordBatch with encryption and default compression.
-    pub fn write(path: &Path, batch: &RecordBatch, encryption: &EncryptionConfig) -> ByteRagResult<()> {
+    pub fn write(
+        path: &Path,
+        batch: &RecordBatch,
+        encryption: &EncryptionConfig,
+    ) -> ByteRagResult<()> {
         Self::write_with_compression(path, batch, encryption, &CompressionConfig::default())
     }
 
@@ -336,4 +340,3 @@ mod tests {
         assert_eq!(total_rows, 100);
     }
 }
-

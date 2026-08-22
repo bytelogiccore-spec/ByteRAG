@@ -128,7 +128,10 @@ fn string_to_datatype(s: &str) -> ByteRagResult<DataType> {
         "Binary" => Ok(DataType::Binary),
         "Date32" => Ok(DataType::Date32),
         "Date64" => Ok(DataType::Date64),
-        _ => Err(ByteRagError::Schema(format!("Unsupported data type: {}", s))),
+        _ => Err(ByteRagError::Schema(format!(
+            "Unsupported data type: {}",
+            s
+        ))),
     }
 }
 
@@ -215,7 +218,9 @@ pub fn delete_index(wos: &NativeWosBackend, index_name: &str) -> ByteRagResult<(
 }
 
 /// Load all index metadata from persistent storage
-pub fn load_all_indexes(wos: &NativeWosBackend) -> ByteRagResult<HashMap<String, (String, String)>> {
+pub fn load_all_indexes(
+    wos: &NativeWosBackend,
+) -> ByteRagResult<HashMap<String, (String, String)>> {
     let mut indexes = HashMap::new();
     let all_records = wos.scan("__meta__/indexes", ..)?;
 
@@ -235,7 +240,10 @@ pub fn load_all_indexes(wos: &NativeWosBackend) -> ByteRagResult<HashMap<String,
 // ════════════════════════════════════════════
 
 /// Save trigger metadata to persistent storage
-pub fn save_trigger(wos: &NativeWosBackend, trigger: &crate::automation::Trigger) -> ByteRagResult<()> {
+pub fn save_trigger(
+    wos: &NativeWosBackend,
+    trigger: &crate::automation::Trigger,
+) -> ByteRagResult<()> {
     let json = trigger.to_json()?;
     wos.insert(
         "__meta__/triggers",
@@ -543,5 +551,3 @@ mod tests {
         assert!(deleted.is_empty());
     }
 }
-
-

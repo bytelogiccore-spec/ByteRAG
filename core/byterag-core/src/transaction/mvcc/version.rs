@@ -119,4 +119,3 @@ mod tests {
         assert!(v2.encode() < v1.encode());
     }
 }
-

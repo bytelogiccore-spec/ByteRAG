@@ -106,4 +106,3 @@ fn test_compression_levels() -> ByteRagResult<()> {
 
     Ok(())
 }
-

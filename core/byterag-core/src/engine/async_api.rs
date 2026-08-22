@@ -116,7 +116,12 @@ impl GridDatabaseAsync {
     }
 
     /// (분산 락) 락을 획득한 후 데이터를 안전하게 삽입합니다.
-    pub async fn insert_with_lock(&self, table: &str, key: &[u8], value: &[u8]) -> ByteRagResult<()> {
+    pub async fn insert_with_lock(
+        &self,
+        table: &str,
+        key: &[u8],
+        value: &[u8],
+    ) -> ByteRagResult<()> {
         let fencing_token = self
             .dlm
             .acquire(table, key, 5000, Duration::from_secs(3))
@@ -183,5 +188,3 @@ impl GridDatabaseAsync {
         result
     }
 }
-
-

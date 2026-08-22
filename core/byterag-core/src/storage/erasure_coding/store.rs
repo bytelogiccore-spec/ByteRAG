@@ -32,7 +32,8 @@ impl ErasureCodingStore {
 
     /// 인코딩 (데이터 -> K 프래그먼트 + M 패리티)
     pub fn encode(&self, data: &[u8]) -> ByteRagResult<Vec<Vec<u8>>> {
-        let rs = ReedSolomon::new(self.k, self.m).map_err(|e| ByteRagError::Storage(e.to_string()))?;
+        let rs =
+            ReedSolomon::new(self.k, self.m).map_err(|e| ByteRagError::Storage(e.to_string()))?;
 
         let chunk_size = data.len().div_ceil(self.k);
         let mut shards = vec![vec![0u8; chunk_size]; self.k + self.m];
@@ -107,7 +108,8 @@ impl ErasureCodingStore {
         mut shards: Vec<Option<Vec<u8>>>,
         original_len: usize,
     ) -> ByteRagResult<Vec<u8>> {
-        let rs = ReedSolomon::new(self.k, self.m).map_err(|e| ByteRagError::Storage(e.to_string()))?;
+        let rs =
+            ReedSolomon::new(self.k, self.m).map_err(|e| ByteRagError::Storage(e.to_string()))?;
 
         // 1. 유실된 샤드 복원
         rs.reconstruct(&mut shards)
@@ -150,7 +152,8 @@ impl ErasureCodingStore {
             .trim();
         let original_len: usize = length_str.parse().unwrap_or(0);
 
-        let rs = ReedSolomon::new(self.k, self.m).map_err(|e| ByteRagError::Storage(e.to_string()))?;
+        let rs =
+            ReedSolomon::new(self.k, self.m).map_err(|e| ByteRagError::Storage(e.to_string()))?;
         let mut shards: Vec<Option<Vec<u8>>> = vec![None; self.k + self.m];
 
         // 1. 남아있는 샤드들 읽기
@@ -218,4 +221,3 @@ mod tests {
         assert_eq!(recovered, data);
     }
 }
-

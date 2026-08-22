@@ -93,7 +93,10 @@ impl GpuManager {
                             builder.arg(&n);
                             builder.arg(&num_bins_i32);
                             unsafe { builder.launch(cfg_with_shared) }.map_err(|e| {
-                                ByteRagError::Gpu(format!("Histogram kernel launch failed: {:?}", e))
+                                ByteRagError::Gpu(format!(
+                                    "Histogram kernel launch failed: {:?}",
+                                    e
+                                ))
                             })?;
 
                             // Synchronize and sum histogram
@@ -147,7 +150,10 @@ impl GpuManager {
                             // Allocate intermediate buffer for block partial sums
                             let mut block_sums_dev =
                                 stream.alloc_zeros::<i64>(num_blocks).map_err(|e| {
-                                    ByteRagError::Gpu(format!("Failed to alloc block_sums: {:?}", e))
+                                    ByteRagError::Gpu(format!(
+                                        "Failed to alloc block_sums: {:?}",
+                                        e
+                                    ))
                                 })?;
 
                             // Pass 1: Compute block partial sums
@@ -314,15 +320,14 @@ impl GpuManager {
                     let n = slice.len() as i32;
                     let initial_val = if find_max { i32::MIN } else { i32::MAX };
                     let stream = self.device.default_stream();
-                    let mut result_dev = stream
-                        .clone_htod(&[initial_val])
-                        .map_err(|e| ByteRagError::Gpu(format!("Failed to alloc result: {:?}", e)))?;
+                    let mut result_dev = stream.clone_htod(&[initial_val]).map_err(|e| {
+                        ByteRagError::Gpu(format!("Failed to alloc result: {:?}", e))
+                    })?;
 
                     let kernel_name = if find_max { "max_i32" } else { "min_i32" };
-                    let func = self
-                        .module
-                        .load_function(kernel_name)
-                        .map_err(|_| ByteRagError::Gpu(format!("Kernel {} not found", kernel_name)))?;
+                    let func = self.module.load_function(kernel_name).map_err(|_| {
+                        ByteRagError::Gpu(format!("Kernel {} not found", kernel_name))
+                    })?;
 
                     let cfg = LaunchConfig::for_num_elems(n as u32);
                     let mut builder = stream.launch_builder(&func);
@@ -335,9 +340,9 @@ impl GpuManager {
                     stream
                         .synchronize()
                         .map_err(|e| ByteRagError::Gpu(format!("Stream sync failed: {:?}", e)))?;
-                    let result_host = stream
-                        .clone_dtoh(&result_dev)
-                        .map_err(|e| ByteRagError::Gpu(format!("Failed to copy result: {:?}", e)))?;
+                    let result_host = stream.clone_dtoh(&result_dev).map_err(|e| {
+                        ByteRagError::Gpu(format!("Failed to copy result: {:?}", e))
+                    })?;
 
                     Ok(result_host[0])
                 }
@@ -380,10 +385,9 @@ impl GpuManager {
                         .alloc_zeros::<u8>(n as usize)
                         .map_err(|e| ByteRagError::Gpu(format!("Failed to alloc mask: {:?}", e)))?;
 
-                    let func = self
-                        .module
-                        .load_function("filter_gt_i32")
-                        .map_err(|_| ByteRagError::Gpu("Kernel filter_gt_i32 not found".to_string()))?;
+                    let func = self.module.load_function("filter_gt_i32").map_err(|_| {
+                        ByteRagError::Gpu("Kernel filter_gt_i32 not found".to_string())
+                    })?;
 
                     let cfg = LaunchConfig::for_num_elems(n as u32);
                     let mut builder = stream.launch_builder(&func);
@@ -449,8 +453,9 @@ impl GpuManager {
                 builder.arg(&ros_n);
                 builder.arg(&mut result_dev);
 
-                unsafe { builder.launch(cfg) }
-                    .map_err(|e| ByteRagError::Gpu(format!("Merge kernel launch failed: {:?}", e)))?;
+                unsafe { builder.launch(cfg) }.map_err(|e| {
+                    ByteRagError::Gpu(format!("Merge kernel launch failed: {:?}", e))
+                })?;
 
                 stream
                     .synchronize()
@@ -467,4 +472,3 @@ impl GpuManager {
         }
     }
 }
-

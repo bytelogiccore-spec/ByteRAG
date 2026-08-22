@@ -342,4 +342,3 @@ pub fn make_dummy_table(rows: Vec<(i32, String, i64)>) -> (Arc<Schema>, Vec<Reco
 
     (schema, vec![batch])
 }
-

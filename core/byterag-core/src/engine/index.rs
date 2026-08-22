@@ -51,7 +51,12 @@ impl Database {
     /// # 반환
     ///
     /// 해당 값을 가진 행 ID 목록
-    pub fn index_lookup(&self, table: &str, column: &str, value: &[u8]) -> ByteRagResult<Vec<usize>> {
+    pub fn index_lookup(
+        &self,
+        table: &str,
+        column: &str,
+        value: &[u8],
+    ) -> ByteRagResult<Vec<usize>> {
         self.index.lookup(table, column, value)
     }
 
@@ -60,5 +65,3 @@ impl Database {
         self.index.has_index(table, column)
     }
 }
-
-

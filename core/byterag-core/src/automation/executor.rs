@@ -27,7 +27,10 @@ impl ExecutionEngine {
     /// Callable 등록
     pub fn register(&self, callable: Arc<dyn Callable>) -> ByteRagResult<()> {
         let name = callable.name().to_string();
-        let mut callables = self.callables.write().map_err(|_| ByteRagError::LockPoisoned)?;
+        let mut callables = self
+            .callables
+            .write()
+            .map_err(|_| ByteRagError::LockPoisoned)?;
 
         if callables.contains_key(&name) {
             return Err(ByteRagError::DuplicateCallable(name));
@@ -39,7 +42,10 @@ impl ExecutionEngine {
 
     /// Callable 등록 해제
     pub fn unregister(&self, name: &str) -> ByteRagResult<()> {
-        let mut callables = self.callables.write().map_err(|_| ByteRagError::LockPoisoned)?;
+        let mut callables = self
+            .callables
+            .write()
+            .map_err(|_| ByteRagError::LockPoisoned)?;
 
         callables
             .remove(name)
@@ -49,9 +55,17 @@ impl ExecutionEngine {
     }
 
     /// Callable 실행
-    pub fn execute(&self, name: &str, ctx: &ExecutionContext, args: &[Value]) -> ByteRagResult<Value> {
+    pub fn execute(
+        &self,
+        name: &str,
+        ctx: &ExecutionContext,
+        args: &[Value],
+    ) -> ByteRagResult<Value> {
         // Callable 조회
-        let callables = self.callables.read().map_err(|_| ByteRagError::LockPoisoned)?;
+        let callables = self
+            .callables
+            .read()
+            .map_err(|_| ByteRagError::LockPoisoned)?;
 
         let callable = callables
             .get(name)
@@ -79,14 +93,20 @@ impl ExecutionEngine {
 
     /// 등록된 callable 목록
     pub fn list(&self) -> ByteRagResult<Vec<String>> {
-        let callables = self.callables.read().map_err(|_| ByteRagError::LockPoisoned)?;
+        let callables = self
+            .callables
+            .read()
+            .map_err(|_| ByteRagError::LockPoisoned)?;
 
         Ok(callables.keys().cloned().collect())
     }
 
     /// 메트릭 조회
     pub fn metrics(&self) -> ByteRagResult<ExecutionMetrics> {
-        let metrics = self.metrics.read().map_err(|_| ByteRagError::LockPoisoned)?;
+        let metrics = self
+            .metrics
+            .read()
+            .map_err(|_| ByteRagError::LockPoisoned)?;
 
         Ok(metrics.clone())
     }
@@ -253,4 +273,3 @@ mod tests {
         assert_eq!(metrics.call_counts.get("test_func"), Some(&10));
     }
 }
-

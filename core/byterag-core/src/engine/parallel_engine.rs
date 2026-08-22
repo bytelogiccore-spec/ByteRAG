@@ -379,5 +379,3 @@ mod tests {
         assert_eq!(parallelism, 8); // Fixed policy always uses all threads
     }
 }
-
-

@@ -519,4 +519,3 @@ mod tests {
         let _t: Box<dyn Transport> = Box::new(InMemoryTransport::new(tx));
     }
 }
-

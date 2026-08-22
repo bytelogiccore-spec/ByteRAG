@@ -299,4 +299,3 @@ fn test_complex_query() -> byterag_core::ByteRagResult<()> {
 
     Ok(())
 }
-

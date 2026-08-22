@@ -261,4 +261,3 @@ mod tests {
         assert_eq!(executor.list_triggers().len(), 2);
     }
 }
-

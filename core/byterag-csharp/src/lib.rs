@@ -661,7 +661,10 @@ pub unsafe extern "C" fn byterag_has_index(
 
 /// Save the in-memory database to a file
 #[no_mangle]
-pub unsafe extern "C" fn byterag_save_to_file(handle: *mut DbxHandle, path: *const c_char) -> c_int {
+pub unsafe extern "C" fn byterag_save_to_file(
+    handle: *mut DbxHandle,
+    path: *const c_char,
+) -> c_int {
     if handle.is_null() || path.is_null() {
         return byterag_ERR_NULL_PTR;
     }
@@ -991,7 +994,9 @@ pub unsafe extern "C" fn byterag_zero_copy_result_data(
 
 /// Get count from zero-copy scan result
 #[no_mangle]
-pub unsafe extern "C" fn byterag_zero_copy_result_count(result: *const DbxZeroCopyScanResult) -> usize {
+pub unsafe extern "C" fn byterag_zero_copy_result_count(
+    result: *const DbxZeroCopyScanResult,
+) -> usize {
     if result.is_null() {
         return 0;
     }
@@ -1007,4 +1012,3 @@ pub unsafe extern "C" fn byterag_zero_copy_result_free(result: *mut DbxZeroCopyS
         drop(Box::from_raw(result as *mut DbxZeroCopyScanResultInternal));
     }
 }
-

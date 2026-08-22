@@ -326,7 +326,9 @@ impl LogicalPlanner {
                         });
                     }
                     JoinConstraint::None => {
-                        return Err(ByteRagError::Schema("JOIN requires ON condition".to_string()));
+                        return Err(ByteRagError::Schema(
+                            "JOIN requires ON condition".to_string(),
+                        ));
                     }
                 },
                 JoinOperator::CrossJoin => {
@@ -484,4 +486,3 @@ impl LogicalPlanner {
         }
     }
 }
-

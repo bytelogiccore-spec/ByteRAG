@@ -42,6 +42,3 @@ pub mod metrics;
 
 pub use exporter::export_prometheus;
 pub use metrics::{ByteRagMetrics, MetricsSnapshot};
-
-
-

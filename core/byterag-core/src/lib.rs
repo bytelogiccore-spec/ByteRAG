@@ -83,6 +83,7 @@ pub mod api;
 pub mod automation;
 pub mod engine;
 pub mod error;
+pub mod graph;
 pub mod grid;
 pub mod index;
 pub mod monitoring;
@@ -93,7 +94,6 @@ pub mod storage;
 pub mod traits;
 pub mod transaction;
 pub mod vector;
-pub mod graph;
 pub mod wal;
 
 // ===== Re-exports =====
@@ -105,4 +105,3 @@ pub mod logging;
 pub use engine::{Database, DurabilityLevel, SchemaBuilder};
 pub use error::{ByteRagError, ByteRagResult};
 pub use monitoring::MetricsSnapshot;
-

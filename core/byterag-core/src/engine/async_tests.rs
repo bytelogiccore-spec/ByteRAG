@@ -101,4 +101,3 @@ mod tests {
         assert_eq!(final_str, "100", "Concurrent async CAS failed");
     }
 }
-

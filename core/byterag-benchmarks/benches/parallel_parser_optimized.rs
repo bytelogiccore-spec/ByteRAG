@@ -2,8 +2,8 @@
 //
 // 1단계: 복잡한 쿼리 테스트
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::sql::ParallelSqlParser;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 복잡한 쿼리 정의
@@ -214,4 +214,3 @@ criterion_group!(
     bench_batch_mixed_complexity
 );
 criterion_main!(benches);
-

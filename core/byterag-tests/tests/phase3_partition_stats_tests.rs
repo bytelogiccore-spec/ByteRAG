@@ -120,4 +120,3 @@ fn test_partition_stats_update_overwrites() -> ByteRagResult<()> {
     assert_eq!(stats.row_count, 200, "마지막 값으로 덮어쓰여야 함");
     Ok(())
 }
-

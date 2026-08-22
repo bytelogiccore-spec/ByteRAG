@@ -143,4 +143,3 @@ impl PhysicalOperator for TableScanOperator {
         Ok(())
     }
 }
-

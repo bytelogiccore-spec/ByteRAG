@@ -141,4 +141,3 @@ fn test_regression_version_manager_get_at_snapshot() -> ByteRagResult<()> {
 
     Ok(())
 }
-

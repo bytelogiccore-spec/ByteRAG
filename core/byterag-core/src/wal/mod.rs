@@ -402,4 +402,3 @@ mod tests {
         assert_eq!(records[0], checkpoint);
     }
 }
-

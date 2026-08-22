@@ -223,4 +223,3 @@ mod tests {
         assert_eq!(b.get("t2", b"k").unwrap(), Some(b"v2".to_vec()));
     }
 }
-

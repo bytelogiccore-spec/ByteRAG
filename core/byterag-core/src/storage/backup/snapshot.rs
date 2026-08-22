@@ -150,10 +150,10 @@ impl Database {
         let mut table_schemas = self.table_schemas.write().unwrap();
         let mut schemas = self.schemas.write().unwrap();
         for (table_name, metadata) in snapshot.schemas {
-            let schema = Arc::new(
-                Schema::try_from(metadata)
-                    .map_err(|e| ByteRagError::Schema(format!("Failed to restore schema: {}", e)))?,
-            );
+            let schema =
+                Arc::new(Schema::try_from(metadata).map_err(|e| {
+                    ByteRagError::Schema(format!("Failed to restore schema: {}", e))
+                })?);
             table_schemas.insert(table_name.clone(), schema.clone());
             schemas.insert(table_name, schema);
         }
@@ -221,4 +221,3 @@ mod tests {
         assert!(result.unwrap_err().to_string().contains("in-memory"));
     }
 }
-

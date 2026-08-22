@@ -98,4 +98,3 @@ impl PhysicalOperator for GridShuffleWriterOperator {
         self.input.reset()
     }
 }
-

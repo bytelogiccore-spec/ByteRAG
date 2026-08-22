@@ -94,4 +94,3 @@ fn combine_hashes(h1: u64, h2: u64) -> u64 {
         .wrapping_add(h1 << 6)
         .wrapping_add(h1 >> 2))
 }
-

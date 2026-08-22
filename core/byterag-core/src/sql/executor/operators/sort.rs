@@ -99,4 +99,3 @@ impl PhysicalOperator for SortOperator {
         self.input.reset()
     }
 }
-

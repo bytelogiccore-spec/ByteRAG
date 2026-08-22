@@ -6,7 +6,7 @@
 //! - GPU-accelerated aggregations
 //! - CPU vs GPU performance comparison
 
-use byterag_core::{Database, ByteRagResult};
+use byterag_core::{ByteRagResult, Database};
 
 fn main() -> ByteRagResult<()> {
     println!("=== DBX Example: GPU Acceleration ===\n");
@@ -78,4 +78,3 @@ fn demo_performance_note() -> ByteRagResult<()> {
 
     Ok(())
 }
-

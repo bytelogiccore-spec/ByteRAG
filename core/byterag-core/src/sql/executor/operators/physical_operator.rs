@@ -15,4 +15,3 @@ pub trait PhysicalOperator: Send {
     /// 연산자 상태 초기화 (재실행용)
     fn reset(&mut self) -> ByteRagResult<()>;
 }
-

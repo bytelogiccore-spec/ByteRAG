@@ -83,9 +83,10 @@ impl ParallelQueryExecutor {
         }
 
         // Parallel
-        let results: Vec<ByteRagResult<Option<RecordBatch>>> = self.run_parallel(batches, |batch| {
-            Self::apply_filter_to_batch(batch, predicate)
-        });
+        let results: Vec<ByteRagResult<Option<RecordBatch>>> = self
+            .run_parallel(batches, |batch| {
+                Self::apply_filter_to_batch(batch, predicate)
+            });
 
         results
             .into_iter()
@@ -437,4 +438,3 @@ mod tests {
         assert_eq!(result.count, 0);
     }
 }
-

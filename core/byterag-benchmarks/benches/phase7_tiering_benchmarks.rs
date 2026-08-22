@@ -4,8 +4,8 @@
 // 2. Scan 검증: 로컬리티 기반의 다중 파티션 Pruning 스캔
 // 3. 병렬 Hash Aggregate 검증: 10K 행 대상 분산 집계
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rusqlite::Connection;
 use tempfile::tempdir;
 
@@ -129,4 +129,3 @@ fn bench_scan_aggregate_10k(c: &mut Criterion) {
 
 criterion_group!(benches, bench_write_10k, bench_scan_aggregate_10k);
 criterion_main!(benches);
-

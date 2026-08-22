@@ -40,4 +40,3 @@ mod tests {
         assert!(not_found.is_none());
     }
 }
-

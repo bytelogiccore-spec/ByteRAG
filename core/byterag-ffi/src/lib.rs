@@ -455,7 +455,9 @@ pub unsafe extern "C" fn byterag_zero_copy_result_data(
 
 /// Get the number of entries in a zero-copy scan result
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn byterag_zero_copy_result_count(result: *const DbxZeroCopyScanResult) -> usize {
+pub unsafe extern "C" fn byterag_zero_copy_result_count(
+    result: *const DbxZeroCopyScanResult,
+) -> usize {
     if result.is_null() {
         return 0;
     }
@@ -730,7 +732,10 @@ pub unsafe extern "C" fn byterag_has_index(
 
 /// Save the in-memory database to a file
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn byterag_save_to_file(handle: *mut DbxHandle, path: *const c_char) -> c_int {
+pub unsafe extern "C" fn byterag_save_to_file(
+    handle: *mut DbxHandle,
+    path: *const c_char,
+) -> c_int {
     if handle.is_null() || path.is_null() {
         return byterag_ERR_NULL_PTR;
     }
@@ -1027,7 +1032,10 @@ pub unsafe extern "C" fn byterag_drop_table(handle: *mut DbxHandle, table: *cons
 
 /// Check if a table exists. Returns 1 if exists, 0 if not.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn byterag_table_exists(handle: *mut DbxHandle, table: *const c_char) -> c_int {
+pub unsafe extern "C" fn byterag_table_exists(
+    handle: *mut DbxHandle,
+    table: *const c_char,
+) -> c_int {
     if handle.is_null() || table.is_null() {
         return 0;
     }
@@ -1062,4 +1070,3 @@ pub unsafe extern "C" fn byterag_list_tables(
     *out_list = Box::into_raw(Box::new(DbxStringList { names }));
     byterag_OK
 }
-

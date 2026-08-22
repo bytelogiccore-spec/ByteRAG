@@ -2,8 +2,8 @@
 //!
 //! Compares the performance of SQL INSERT statements against direct KV API calls.
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 
 /// Generate SQL INSERT statement with multiple rows
 fn generate_multi_row_insert(count: usize) -> String {
@@ -125,4 +125,3 @@ criterion_group!(
     bench_throughput
 );
 criterion_main!(benches);
-

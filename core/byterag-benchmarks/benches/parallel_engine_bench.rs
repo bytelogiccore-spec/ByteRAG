@@ -1,6 +1,6 @@
-use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use byterag_core::engine::ParallelExecutionEngine;
 use byterag_core::sql::ParallelSqlParser;
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use rayon::prelude::*;
 use std::sync::Arc;
 
@@ -192,4 +192,3 @@ criterion_group!(
 );
 
 criterion_main!(benches);
-

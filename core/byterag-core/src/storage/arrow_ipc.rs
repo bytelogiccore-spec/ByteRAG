@@ -89,4 +89,3 @@ mod tests {
         assert_eq!(batch.schema(), restored_batch.schema());
     }
 }
-

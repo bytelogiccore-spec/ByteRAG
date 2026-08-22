@@ -89,4 +89,3 @@ pub trait StorageBackend: Send + Sync {
     /// Return all table names managed by this backend.
     fn table_names(&self) -> ByteRagResult<Vec<String>>;
 }
-

@@ -22,7 +22,10 @@ impl CsrGraph {
             row_offsets.push(offset);
         }
 
-        Self { row_offsets, col_indices }
+        Self {
+            row_offsets,
+            col_indices,
+        }
     }
 
     pub fn multi_hop_bfs(&self, start_node: u32, max_depth: usize) -> usize {
@@ -74,8 +77,13 @@ fn main() {
         }
         let dur = start.elapsed();
         let avg_dur = dur.as_secs_f64() * 1000.0 / (iters as f64);
-        println!("  >> {}-Hop BFS Traversal ({} iters): Avg {:.3} µs / query (visited total: {})", 
-            depth, iters, avg_dur * 1000.0, sum_nodes / iters);
+        println!(
+            "  >> {}-Hop BFS Traversal ({} iters): Avg {:.3} µs / query (visited total: {})",
+            depth,
+            iters,
+            avg_dur * 1000.0,
+            sum_nodes / iters
+        );
     }
     println!("============================================================");
 }

@@ -89,4 +89,3 @@ mod tests {
         assert_eq!(restored.entries[0].1, b"value1");
     }
 }
-

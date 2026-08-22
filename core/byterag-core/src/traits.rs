@@ -61,7 +61,11 @@ pub trait DatabaseSql {
     fn register_table(&self, name: &str, batches: Vec<arrow::record_batch::RecordBatch>);
 
     /// 배치 추가
-    fn append_batch(&self, table: &str, batch: arrow::record_batch::RecordBatch) -> ByteRagResult<()>;
+    fn append_batch(
+        &self,
+        table: &str,
+        batch: arrow::record_batch::RecordBatch,
+    ) -> ByteRagResult<()>;
 }
 
 // ════════════════════════════════════════════
@@ -122,4 +126,3 @@ pub trait DatabaseSerde {
         key: &[u8],
     ) -> ByteRagResult<Option<T>>;
 }
-

@@ -202,5 +202,3 @@ impl Database {
         self.tx_manager.active_count()
     }
 }
-
-

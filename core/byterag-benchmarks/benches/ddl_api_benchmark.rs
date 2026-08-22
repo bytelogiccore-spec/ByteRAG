@@ -4,8 +4,8 @@
 // cargo bench --bench ddl_api_benchmark
 
 use arrow::datatypes::{DataType, Field, Schema};
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 // ════════════════════════════════════════════
 // Table Management Benchmarks
@@ -251,4 +251,3 @@ criterion_group!(
 );
 
 criterion_main!(table_management, index_management, alter_table);
-

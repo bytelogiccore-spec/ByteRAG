@@ -38,15 +38,19 @@ pub fn parse_create_function(sql: &str) -> ByteRagResult<UdfMetadata> {
     let name = tokens[2].trim_end_matches('(').to_string();
 
     // 파라미터 추출
-    let params_start = sql.find('(').ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing opening parenthesis".to_string(),
-        context: "CREATE FUNCTION parsing".to_string(),
-    })?;
+    let params_start = sql
+        .find('(')
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing opening parenthesis".to_string(),
+            context: "CREATE FUNCTION parsing".to_string(),
+        })?;
 
-    let params_end = sql.find(')').ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing closing parenthesis".to_string(),
-        context: "CREATE FUNCTION parsing".to_string(),
-    })?;
+    let params_end = sql
+        .find(')')
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing closing parenthesis".to_string(),
+            context: "CREATE FUNCTION parsing".to_string(),
+        })?;
 
     let params_str = &sql[params_start + 1..params_end];
     let mut param_types = Vec::new();
@@ -178,4 +182,3 @@ mod tests {
         assert_eq!(metadata.return_type, "DECIMAL");
     }
 }
-

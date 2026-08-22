@@ -36,4 +36,3 @@ pub(crate) enum BackgroundJob {
         row_id: usize,
     },
 }
-

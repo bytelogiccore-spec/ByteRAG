@@ -254,4 +254,3 @@ mod tests {
         assert_eq!(last.attempts, 3);
     }
 }
-

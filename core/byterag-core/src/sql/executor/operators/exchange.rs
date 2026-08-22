@@ -33,11 +33,12 @@ impl PhysicalOperator for GridExchangeOperator {
             Some(Ok(Some(raw_bytes))) => {
                 // I/O 스레드가 아닌 CPU 연산(Physical) 스레드에서 백그라운드 디코딩
                 let cursor = Cursor::new(raw_bytes);
-                let mut reader =
-                    StreamReader::try_new(cursor, None).map_err(|e| ByteRagError::SqlExecution {
+                let mut reader = StreamReader::try_new(cursor, None).map_err(|e| {
+                    ByteRagError::SqlExecution {
                         message: format!("Arrow IPC stream init failed: {}", e),
                         context: "GridExchangeOperator".to_string(),
-                    })?;
+                    }
+                })?;
 
                 if let Some(result) = reader.next() {
                     let batch = result.map_err(|e| ByteRagError::SqlExecution {
@@ -71,4 +72,3 @@ impl PhysicalOperator for GridExchangeOperator {
         })
     }
 }
-

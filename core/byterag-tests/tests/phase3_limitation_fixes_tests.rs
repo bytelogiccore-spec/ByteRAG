@@ -176,4 +176,3 @@ fn test_run_lifecycle_no_policy_returns_error() -> ByteRagResult<()> {
     assert!(result.is_err(), "lifecycle 정책 없으면 에러 반환이어야 함");
     Ok(())
 }
-

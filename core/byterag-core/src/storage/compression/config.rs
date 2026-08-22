@@ -276,4 +276,3 @@ mod tests {
         assert_eq!(CompressionAlgorithm::ALL.len(), 5);
     }
 }
-

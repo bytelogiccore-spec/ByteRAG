@@ -209,4 +209,3 @@ mod tests {
         assert_eq!(merged.num_rows(), 1);
     }
 }
-

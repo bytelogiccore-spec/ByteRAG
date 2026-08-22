@@ -45,13 +45,14 @@ pub fn parse_create_schedule(sql: &str) -> ByteRagResult<Schedule> {
         })?
         + "CREATE SCHEDULE".len();
 
-    let name_end = sql[name_start..]
-        .find("EVERY")
-        .ok_or_else(|| ByteRagError::InvalidOperation {
-            message: "Missing EVERY clause".to_string(),
-            context: sql.to_string(),
-        })?
-        + name_start;
+    let name_end =
+        sql[name_start..]
+            .find("EVERY")
+            .ok_or_else(|| ByteRagError::InvalidOperation {
+                message: "Missing EVERY clause".to_string(),
+                context: sql.to_string(),
+            })?
+            + name_start;
 
     let name = sql[name_start..name_end].trim().to_string();
 
@@ -64,13 +65,14 @@ pub fn parse_create_schedule(sql: &str) -> ByteRagResult<Schedule> {
         })?
         + "EVERY".len();
 
-    let cron_end = sql[cron_start..]
-        .find("BEGIN")
-        .ok_or_else(|| ByteRagError::InvalidOperation {
-            message: "Missing BEGIN".to_string(),
-            context: sql.to_string(),
-        })?
-        + cron_start;
+    let cron_end =
+        sql[cron_start..]
+            .find("BEGIN")
+            .ok_or_else(|| ByteRagError::InvalidOperation {
+                message: "Missing BEGIN".to_string(),
+                context: sql.to_string(),
+            })?
+            + cron_start;
 
     let cron_expr = sql[cron_start..cron_end]
         .trim()
@@ -87,10 +89,12 @@ pub fn parse_create_schedule(sql: &str) -> ByteRagResult<Schedule> {
         })?
         + "BEGIN".len();
 
-    let body_end = sql.rfind("END").ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing END".to_string(),
-        context: sql.to_string(),
-    })?;
+    let body_end = sql
+        .rfind("END")
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing END".to_string(),
+            context: sql.to_string(),
+        })?;
 
     let body_str = sql[body_start..body_end].trim();
 
@@ -193,4 +197,3 @@ mod tests {
         assert_eq!(name, "refresh_stats");
     }
 }
-

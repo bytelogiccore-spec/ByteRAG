@@ -724,4 +724,3 @@ mod matview_tests {
         assert!(dirty.is_empty());
     }
 }
-

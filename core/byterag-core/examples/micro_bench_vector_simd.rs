@@ -83,7 +83,10 @@ fn main() {
         }
     }
     let scalar_dur = start_scalar.elapsed();
-    println!("  >> Scalar Scan (10K x 1536-dim): {:.2?} (max_sim: {:.4})", scalar_dur, max_sim_scalar);
+    println!(
+        "  >> Scalar Scan (10K x 1536-dim): {:.2?} (max_sim: {:.4})",
+        scalar_dur, max_sim_scalar
+    );
 
     // Benchmark SIMD (f32x8) Brute-Force Scan
     let start_simd = Instant::now();
@@ -95,11 +98,17 @@ fn main() {
         }
     }
     let simd_dur = start_simd.elapsed();
-    println!("  >> SIMD f32x8 Scan (10K x 1536-dim): {:.2?} (max_sim: {:.4})", simd_dur, max_sim_simd);
+    println!(
+        "  >> SIMD f32x8 Scan (10K x 1536-dim): {:.2?} (max_sim: {:.4})",
+        simd_dur, max_sim_simd
+    );
 
     let speedup = scalar_dur.as_secs_f64() / simd_dur.as_secs_f64();
     println!("============================================================");
     println!("   SIMD Acceleration Speedup: {:.2}x faster", speedup);
-    println!("   Per Vector Search Latency: {:.2} ns/vec", (simd_dur.as_nanos() as f64) / (num_vectors as f64));
+    println!(
+        "   Per Vector Search Latency: {:.2} ns/vec",
+        (simd_dur.as_nanos() as f64) / (num_vectors as f64)
+    );
     println!("============================================================");
 }

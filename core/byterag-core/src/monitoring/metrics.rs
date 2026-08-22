@@ -329,5 +329,3 @@ mod tests {
         assert_eq!(snap.avg_query_latency_us, 850); // (500 + 1200) / 2
     }
 }
-
-

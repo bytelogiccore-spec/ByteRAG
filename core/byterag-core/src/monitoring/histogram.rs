@@ -174,5 +174,3 @@ mod tests {
         assert!(out.contains("# TYPE byterag_query_latency_us histogram"));
     }
 }
-
-

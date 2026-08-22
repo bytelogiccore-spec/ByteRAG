@@ -9,8 +9,8 @@
 //   B. wal_flush:     dirty entries만 WAL 파일에 sequential append
 //   C. wal_compact:   WAL + SSTable 병합 (flush와 동일 비용, 발생 빈도가 다름)
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::fs::OpenOptions;
 use std::io::Write;
 use tempfile::tempdir;
@@ -147,4 +147,3 @@ criterion_group!(
     bench_wal_compact,
 );
 criterion_main!(flush_benches);
-

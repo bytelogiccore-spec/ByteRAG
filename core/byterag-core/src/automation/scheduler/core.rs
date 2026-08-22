@@ -174,4 +174,3 @@ mod tests {
         assert_eq!(executed[0], "test_job");
     }
 }
-

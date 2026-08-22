@@ -75,4 +75,3 @@ impl Default for QueryOptimizer {
         Self::new()
     }
 }
-

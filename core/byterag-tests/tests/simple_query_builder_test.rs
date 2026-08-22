@@ -30,4 +30,3 @@ fn test_query_builder_simple() -> byterag_core::ByteRagResult<()> {
 
     Ok(())
 }
-

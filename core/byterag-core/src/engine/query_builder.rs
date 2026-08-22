@@ -3,7 +3,7 @@
 // This module provides a type-safe, fluent API for building SQL queries
 // without writing raw SQL strings.
 
-use crate::{Database, ByteRagResult};
+use crate::{ByteRagResult, Database};
 use arrow::record_batch::RecordBatch;
 
 /// Connector type for WHERE clauses
@@ -334,5 +334,3 @@ impl<'a> QueryBuilder<'a> {
         self.db.execute_sql(&sql)
     }
 }
-
-

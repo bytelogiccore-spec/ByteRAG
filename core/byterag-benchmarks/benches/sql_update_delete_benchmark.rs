@@ -2,8 +2,8 @@
 //!
 //! Benchmarks UPDATE and DELETE operations with various WHERE clauses
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 
 /// Setup database with test data
 fn setup_db_with_data(count: usize) -> Database {
@@ -206,4 +206,3 @@ criterion_group!(
     bench_delete_where_or
 );
 criterion_main!(benches);
-

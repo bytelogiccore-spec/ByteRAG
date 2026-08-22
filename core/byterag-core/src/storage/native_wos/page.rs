@@ -174,4 +174,3 @@ mod tests {
         assert_eq!(decoded.entries[0].value, big_val);
     }
 }
-

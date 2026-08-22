@@ -141,4 +141,3 @@ mod tests {
         assert!(matches!(plan, LogicalPlan::DropTable { .. }));
     }
 }
-

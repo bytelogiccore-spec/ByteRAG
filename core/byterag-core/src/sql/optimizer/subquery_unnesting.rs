@@ -84,4 +84,3 @@ mod tests {
 
     // Unit tests will simulate Expr::InSubquery unwrapping when it's added to types.rs
 }
-

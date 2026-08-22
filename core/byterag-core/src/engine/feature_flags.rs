@@ -331,5 +331,3 @@ mod tests {
         assert_eq!(Feature::parse_feature("invalid"), None);
     }
 }
-
-

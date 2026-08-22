@@ -133,4 +133,3 @@ mod tests {
         assert_eq!(meta.description, deserialized.description);
     }
 }
-

@@ -6,7 +6,7 @@
 //! - Reading and writing encrypted data
 
 use byterag_core::storage::encryption::{EncryptionAlgorithm, EncryptionConfig};
-use byterag_core::{Database, ByteRagResult};
+use byterag_core::{ByteRagResult, Database};
 use std::path::Path;
 
 fn main() -> ByteRagResult<()> {
@@ -113,4 +113,3 @@ fn demo_in_memory_encrypted() -> ByteRagResult<()> {
 
     Ok(())
 }
-

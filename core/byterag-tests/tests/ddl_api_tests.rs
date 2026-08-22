@@ -143,4 +143,3 @@ fn test_sql_index_vs_hash_index() -> byterag_core::ByteRagResult<()> {
 
     Ok(())
 }
-

@@ -180,8 +180,8 @@ impl DistributedExecutor {
             // 동일 스테이지 내의 플랜들을 직렬화
             let mut plans_bytes = Vec::new();
             for p in stage.plans {
-                let bytes =
-                    bincode::serialize(&p).map_err(|e| ByteRagError::Serialization(e.to_string()))?;
+                let bytes = bincode::serialize(&p)
+                    .map_err(|e| ByteRagError::Serialization(e.to_string()))?;
                 plans_bytes.push(bytes);
             }
 
@@ -282,4 +282,3 @@ impl DistributedExecutor {
         Ok(final_results)
     }
 }
-

@@ -276,11 +276,12 @@ impl Database {
             let table_owned = table.to_string();
             // 각 (key, value) 쌍을 병렬로 삽입
             // DeltaStore는 내부적으로 DashMap + SkipMap(Arc)이므로 공유 안전
-            let results: Vec<crate::error::ByteRagResult<()>> = self.parallel_engine.execute(|| {
-                rows.par_iter()
-                    .map(|(key, value)| delta.insert(&table_owned, key, value))
-                    .collect()
-            });
+            let results: Vec<crate::error::ByteRagResult<()>> =
+                self.parallel_engine.execute(|| {
+                    rows.par_iter()
+                        .map(|(key, value)| delta.insert(&table_owned, key, value))
+                        .collect()
+                });
             for r in results {
                 r?;
             }
@@ -445,7 +446,10 @@ impl Database {
     }
 
     /// Helper method for Snapshot: scan all versioned entries from Delta Store.
-    pub(crate) fn scan_delta_versioned(&self, table: &str) -> ByteRagResult<Vec<(Vec<u8>, Vec<u8>)>> {
+    pub(crate) fn scan_delta_versioned(
+        &self,
+        table: &str,
+    ) -> ByteRagResult<Vec<(Vec<u8>, Vec<u8>)>> {
         StorageBackend::scan(&self.delta, table, ..)
     }
 
@@ -812,7 +816,12 @@ impl Database {
     // ════════════════════════════════════════════
 
     /// 값이 없을 때만 삽입 (Atomic CAS)
-    pub fn insert_if_not_exists(&self, table: &str, key: &[u8], value: &[u8]) -> ByteRagResult<bool> {
+    pub fn insert_if_not_exists(
+        &self,
+        table: &str,
+        key: &[u8],
+        value: &[u8],
+    ) -> ByteRagResult<bool> {
         let _guard = self.cas_locks.lock(table, key);
 
         if self.get(table, key)?.is_none() {
@@ -855,7 +864,12 @@ impl Database {
     }
 
     /// 기존 값과 일치할 때만 삭제 (Atomic CAS)
-    pub fn delete_if_equals(&self, table: &str, key: &[u8], expected: &[u8]) -> ByteRagResult<bool> {
+    pub fn delete_if_equals(
+        &self,
+        table: &str,
+        key: &[u8],
+        expected: &[u8],
+    ) -> ByteRagResult<bool> {
         let _guard = self.cas_locks.lock(table, key);
 
         if let Some(current) = self.get(table, key)?
@@ -982,12 +996,8 @@ impl Database {
 
         for (key, val_bytes) in entries {
             if val_bytes.len() == std::mem::size_of_val(query) {
-                let vec_slice: &[f32] = unsafe {
-                    std::slice::from_raw_parts(
-                        val_bytes.as_ptr() as *const f32,
-                        dim,
-                    )
-                };
+                let vec_slice: &[f32] =
+                    unsafe { std::slice::from_raw_parts(val_bytes.as_ptr() as *const f32, dim) };
                 index.insert(key, vec_slice);
             }
         }
@@ -1015,6 +1025,3 @@ impl Database {
         Ok(graph.multi_hop_traversal(start_node, max_depth))
     }
 }
-
-
-

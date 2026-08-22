@@ -247,7 +247,10 @@ impl HashAggregateOperator {
     /// Try to perform global aggregation on GPU.
     /// Returns None if GPU acceleration is not possible for the given query/types.
     #[allow(dead_code)]
-    fn try_gpu_global_aggregate(&self, batches: &[RecordBatch]) -> ByteRagResult<Option<RecordBatch>> {
+    fn try_gpu_global_aggregate(
+        &self,
+        batches: &[RecordBatch],
+    ) -> ByteRagResult<Option<RecordBatch>> {
         let gpu = match &self.gpu_manager {
             Some(g) => g,
             None => return Ok(None),
@@ -935,4 +938,3 @@ mod tests {
         assert_eq!(res_arr.value(0), 30.0);
     }
 }
-

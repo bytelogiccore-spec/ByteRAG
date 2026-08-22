@@ -83,4 +83,3 @@ impl PhysicalOperator for LimitOperator {
         self.input.reset()
     }
 }
-

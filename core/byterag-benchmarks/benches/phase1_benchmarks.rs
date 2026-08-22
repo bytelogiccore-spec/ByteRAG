@@ -4,10 +4,10 @@
 // Section 2: 병렬 SQL 파싱 (단일 vs 배치 성능 비교)
 // Section 3: MVCC 버전 관리 (add_version, get_at_snapshot 성능)
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::engine::TwoLevelCache;
 use byterag_core::sql::ParallelSqlParser;
 use byterag_core::transaction::{TimestampOracle, VersionManager};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -166,4 +166,3 @@ criterion_group!(
     bench_version_manager
 );
 criterion_main!(benches);
-

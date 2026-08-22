@@ -242,4 +242,3 @@ mod tests {
         assert_eq!(out_arr[1].as_i64().unwrap(), 30);
     }
 }
-

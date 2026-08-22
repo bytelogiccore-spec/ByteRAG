@@ -391,4 +391,3 @@ async fn test_distributed_group_by_sum_e2e_quic() -> ByteRagResult<()> {
     println!("QUIC E2E 테스트는 --ignored 플래그로 실행하세요.");
     Ok(())
 }
-

@@ -303,5 +303,3 @@ mod tests {
         assert_eq!(order_indexes.len(), 1);
     }
 }
-
-

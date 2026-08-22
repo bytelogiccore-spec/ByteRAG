@@ -113,4 +113,3 @@ fn test_list_partitions_empty_when_no_tier_set() -> ByteRagResult<()> {
     assert_eq!(hot.len(), 0, "명시적 설정이 없으면 목록이 비어야 함");
     Ok(())
 }
-

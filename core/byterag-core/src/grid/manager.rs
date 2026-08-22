@@ -421,4 +421,3 @@ impl GridManager {
         }
     }
 }
-

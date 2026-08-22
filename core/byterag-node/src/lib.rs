@@ -524,4 +524,3 @@ impl Database {
         Ok(results)
     }
 }
-

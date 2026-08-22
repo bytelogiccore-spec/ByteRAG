@@ -395,13 +395,14 @@ impl Database {
         let after_view = &sql[upper.find("VIEW").unwrap() + 4..]
             .trim_start()
             .to_owned();
-        let as_pos = after_view
-            .to_uppercase()
-            .find(" AS ")
-            .ok_or_else(|| ByteRagError::SqlParse {
-                message: "CREATE VIEW requires AS".to_string(),
-                sql: sql.to_string(),
-            })?;
+        let as_pos =
+            after_view
+                .to_uppercase()
+                .find(" AS ")
+                .ok_or_else(|| ByteRagError::SqlParse {
+                    message: "CREATE VIEW requires AS".to_string(),
+                    sql: sql.to_string(),
+                })?;
         let view_name = after_view[..as_pos].trim();
         let view_sql = after_view[as_pos + 4..].trim();
         self.view_registry.create(view_name, view_sql)?;
@@ -450,13 +451,14 @@ impl Database {
             // 이름은 REFRESH EVERY 이전
             let name_part = after_view[..re_pos].trim().to_string();
             let rest = after_view[re_pos + 13..].trim_start().to_string();
-            let as_pos = rest
-                .to_uppercase()
-                .find(" AS ")
-                .ok_or_else(|| ByteRagError::SqlParse {
-                    message: "CREATE MATERIALIZED VIEW ... REFRESH EVERY <n> AS <sql>".to_string(),
-                    sql: sql.to_string(),
-                })?;
+            let as_pos =
+                rest.to_uppercase()
+                    .find(" AS ")
+                    .ok_or_else(|| ByteRagError::SqlParse {
+                        message: "CREATE MATERIALIZED VIEW ... REFRESH EVERY <n> AS <sql>"
+                            .to_string(),
+                        sql: sql.to_string(),
+                    })?;
             let interval_str = rest[..as_pos].trim();
             let interval_secs: u64 = interval_str.parse().map_err(|_| ByteRagError::SqlParse {
                 message: format!(
@@ -468,10 +470,12 @@ impl Database {
             let view_sql = rest[as_pos + 4..].trim().to_string();
             (Some(interval_secs), (name_part, view_sql))
         } else {
-            let as_pos = after_upper.find(" AS ").ok_or_else(|| ByteRagError::SqlParse {
-                message: "CREATE MATERIALIZED VIEW requires AS".to_string(),
-                sql: sql.to_string(),
-            })?;
+            let as_pos = after_upper
+                .find(" AS ")
+                .ok_or_else(|| ByteRagError::SqlParse {
+                    message: "CREATE MATERIALIZED VIEW requires AS".to_string(),
+                    sql: sql.to_string(),
+                })?;
             let name = after_view[..as_pos].trim().to_string();
             let view_sql = after_view[as_pos + 4..].trim().to_string();
             (None, (name, view_sql))
@@ -532,7 +536,8 @@ impl Database {
             false,
         )]));
         let array = Int64Array::from(vec![1_i64]);
-        let batch = RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+        let batch =
+            RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
         Ok(vec![batch])
     }
 
@@ -630,8 +635,8 @@ impl Database {
                     false,
                 )]));
                 let array = Int64Array::from(vec![rows_inserted as i64]);
-                let batch =
-                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+                let batch = RecordBatch::try_new(schema, vec![Arc::new(array)])
+                    .map_err(ByteRagError::from)?;
 
                 Ok(vec![batch])
             }
@@ -741,8 +746,8 @@ impl Database {
                     false,
                 )]));
                 let array = Int64Array::from(vec![rows_updated]);
-                let batch =
-                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+                let batch = RecordBatch::try_new(schema, vec![Arc::new(array)])
+                    .map_err(ByteRagError::from)?;
 
                 Ok(vec![batch])
             }
@@ -787,8 +792,8 @@ impl Database {
                     false,
                 )]));
                 let array = Int64Array::from(vec![rows_deleted]);
-                let batch =
-                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+                let batch = RecordBatch::try_new(schema, vec![Arc::new(array)])
+                    .map_err(ByteRagError::from)?;
 
                 Ok(vec![batch])
             }
@@ -823,8 +828,8 @@ impl Database {
                     false,
                 )]));
                 let array = Int64Array::from(vec![1]);
-                let batch =
-                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+                let batch = RecordBatch::try_new(schema, vec![Arc::new(array)])
+                    .map_err(ByteRagError::from)?;
 
                 Ok(vec![batch])
             }
@@ -895,8 +900,8 @@ impl Database {
                     false,
                 )]));
                 let array = Int64Array::from(vec![1]);
-                let batch =
-                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+                let batch = RecordBatch::try_new(schema, vec![Arc::new(array)])
+                    .map_err(ByteRagError::from)?;
 
                 Ok(vec![batch])
             }
@@ -953,8 +958,8 @@ impl Database {
                     false,
                 )]));
                 let array = Int64Array::from(vec![1]);
-                let batch =
-                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+                let batch = RecordBatch::try_new(schema, vec![Arc::new(array)])
+                    .map_err(ByteRagError::from)?;
 
                 Ok(vec![batch])
             }
@@ -1005,8 +1010,8 @@ impl Database {
                     false,
                 )]));
                 let array = Int64Array::from(vec![1]);
-                let batch =
-                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+                let batch = RecordBatch::try_new(schema, vec![Arc::new(array)])
+                    .map_err(ByteRagError::from)?;
 
                 Ok(vec![batch])
             }
@@ -1140,8 +1145,8 @@ impl Database {
                     false,
                 )]));
                 let array = Int64Array::from(vec![1]);
-                let batch =
-                    RecordBatch::try_new(schema, vec![Arc::new(array)]).map_err(ByteRagError::from)?;
+                let batch = RecordBatch::try_new(schema, vec![Arc::new(array)])
+                    .map_err(ByteRagError::from)?;
 
                 Ok(vec![batch])
             }
@@ -1624,10 +1629,13 @@ impl crate::traits::DatabaseSql for Database {
         Database::register_table(self, name, batches)
     }
 
-    fn append_batch(&self, table: &str, batch: arrow::record_batch::RecordBatch) -> ByteRagResult<()> {
+    fn append_batch(
+        &self,
+        table: &str,
+        batch: arrow::record_batch::RecordBatch,
+    ) -> ByteRagResult<()> {
         // Reuse existing implementation
         Database::append_batch(self, table, batch);
         Ok(())
     }
 }
-

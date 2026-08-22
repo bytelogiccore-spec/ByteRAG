@@ -182,4 +182,3 @@ fn test_metrics_isolation() {
     assert_eq!(snap1.inserts_total, 2);
     assert_eq!(snap2.inserts_total, 1);
 }
-

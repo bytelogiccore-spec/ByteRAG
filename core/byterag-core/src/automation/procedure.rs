@@ -48,14 +48,20 @@ impl StoredProcedure {
     /// Procedure를 JSON으로 직렬화
     pub fn to_json(&self) -> crate::error::ByteRagResult<String> {
         serde_json::to_string(self).map_err(|e| {
-            crate::error::ByteRagError::Serialization(format!("Failed to serialize procedure: {}", e))
+            crate::error::ByteRagError::Serialization(format!(
+                "Failed to serialize procedure: {}",
+                e
+            ))
         })
     }
 
     /// JSON에서 Procedure 역직렬화
     pub fn from_json(json: &str) -> crate::error::ByteRagResult<Self> {
         serde_json::from_str(json).map_err(|e| {
-            crate::error::ByteRagError::Serialization(format!("Failed to deserialize procedure: {}", e))
+            crate::error::ByteRagError::Serialization(format!(
+                "Failed to deserialize procedure: {}",
+                e
+            ))
         })
     }
 }
@@ -110,4 +116,3 @@ mod tests {
         assert_eq!(proc.body.len(), deserialized.body.len());
     }
 }
-

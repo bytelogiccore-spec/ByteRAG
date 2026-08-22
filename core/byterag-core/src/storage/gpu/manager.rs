@@ -168,25 +168,25 @@ impl GpuManager {
                 let arr = array.as_any().downcast_ref::<Int32Array>().unwrap();
                 let stream = self.device.default_stream();
                 // Zero-copy: Access the underlying slice directly
-                let slice = stream
-                    .clone_htod(&arr.values()[..])
-                    .map_err(|e| ByteRagError::Gpu(format!("CUDA HTOD copy (i32) failed: {:?}", e)))?;
+                let slice = stream.clone_htod(&arr.values()[..]).map_err(|e| {
+                    ByteRagError::Gpu(format!("CUDA HTOD copy (i32) failed: {:?}", e))
+                })?;
                 Ok(GpuData::Int32(slice))
             }
             arrow::datatypes::DataType::Int64 => {
                 let arr = array.as_any().downcast_ref::<Int64Array>().unwrap();
                 let stream = self.device.default_stream();
-                let slice = stream
-                    .clone_htod(&arr.values()[..])
-                    .map_err(|e| ByteRagError::Gpu(format!("CUDA HTOD copy (i64) failed: {:?}", e)))?;
+                let slice = stream.clone_htod(&arr.values()[..]).map_err(|e| {
+                    ByteRagError::Gpu(format!("CUDA HTOD copy (i64) failed: {:?}", e))
+                })?;
                 Ok(GpuData::Int64(slice))
             }
             arrow::datatypes::DataType::Float64 => {
                 let arr = array.as_any().downcast_ref::<Float64Array>().unwrap();
                 let stream = self.device.default_stream();
-                let slice = stream
-                    .clone_htod(&arr.values()[..])
-                    .map_err(|e| ByteRagError::Gpu(format!("CUDA HTOD copy (f64) failed: {:?}", e)))?;
+                let slice = stream.clone_htod(&arr.values()[..]).map_err(|e| {
+                    ByteRagError::Gpu(format!("CUDA HTOD copy (f64) failed: {:?}", e))
+                })?;
                 Ok(GpuData::Float64(slice))
             }
             _ => Err(ByteRagError::NotImplemented(format!(
@@ -232,7 +232,10 @@ impl GpuManager {
                     // Use unsafe pointer copy as a fallback
                     unsafe {
                         let ptr = pinned.as_mut_ptr().map_err(|e| {
-                            ByteRagError::Gpu(format!("Failed to get pinned memory pointer: {:?}", e))
+                            ByteRagError::Gpu(format!(
+                                "Failed to get pinned memory pointer: {:?}",
+                                e
+                            ))
                         })?;
                         std::ptr::copy_nonoverlapping(values.as_ptr(), ptr, values.len());
                     }
@@ -279,4 +282,3 @@ impl GpuManager {
         }
     }
 }
-

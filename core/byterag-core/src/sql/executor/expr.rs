@@ -354,7 +354,11 @@ fn coerce_for_compare(left: &ArrayRef, right: &ArrayRef) -> ByteRagResult<(Array
 }
 
 /// Comparison operations on arrays.
-fn comparison_op(left: &ArrayRef, right: &ArrayRef, op: &BinaryOperator) -> ByteRagResult<ArrayRef> {
+fn comparison_op(
+    left: &ArrayRef,
+    right: &ArrayRef,
+    op: &BinaryOperator,
+) -> ByteRagResult<ArrayRef> {
     let (left, right) = coerce_for_compare(left, right)?;
 
     let result: BooleanArray = match left.data_type() {
@@ -434,7 +438,11 @@ fn comparison_op(left: &ArrayRef, right: &ArrayRef, op: &BinaryOperator) -> Byte
 }
 
 /// Arithmetic operations on numeric arrays.
-fn arithmetic_op(left: &ArrayRef, right: &ArrayRef, op: &BinaryOperator) -> ByteRagResult<ArrayRef> {
+fn arithmetic_op(
+    left: &ArrayRef,
+    right: &ArrayRef,
+    op: &BinaryOperator,
+) -> ByteRagResult<ArrayRef> {
     match left.data_type() {
         DataType::Int32 => {
             let l = left.as_any().downcast_ref::<Int32Array>().unwrap();
@@ -490,4 +498,3 @@ fn logical_op(left: &ArrayRef, right: &ArrayRef, op: &BinaryOperator) -> ByteRag
     };
     Ok(Arc::new(result))
 }
-

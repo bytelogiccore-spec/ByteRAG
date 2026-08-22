@@ -305,4 +305,3 @@ fn test_hash_join_normal_operation_within_budget() {
         result.err()
     );
 }
-

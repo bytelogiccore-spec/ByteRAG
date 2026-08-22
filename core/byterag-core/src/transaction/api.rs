@@ -122,7 +122,11 @@ impl<'a> Transaction<'a, Active> {
     }
 
     /// 트랜잭션 내 BATCH INSERT — 여러 키-값 쌍을 일괄 삽입 (최적화됨)
-    pub fn insert_batch(&mut self, table: &str, rows: Vec<(Vec<u8>, Vec<u8>)>) -> ByteRagResult<()> {
+    pub fn insert_batch(
+        &mut self,
+        table: &str,
+        rows: Vec<(Vec<u8>, Vec<u8>)>,
+    ) -> ByteRagResult<()> {
         self.ops.push(TxOp::Batch(table.to_string(), rows.clone()));
         // 로컬 읽기 버퍼에도 반영
         let table_buf = self.local_buffer.entry(table.to_string()).or_default();
@@ -379,4 +383,3 @@ mod tests {
         assert!(rolled_back.is_rolled_back());
     }
 }
-

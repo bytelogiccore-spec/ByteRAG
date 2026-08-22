@@ -135,5 +135,3 @@ impl StorageBackend for DeltaVariant {
         }
     }
 }
-
-

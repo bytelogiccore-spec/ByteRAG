@@ -231,4 +231,3 @@ mod tests {
         assert!((analyzer.oltp_ratio() - 0.5).abs() < f64::EPSILON);
     }
 }
-

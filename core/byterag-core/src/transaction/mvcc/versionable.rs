@@ -303,7 +303,9 @@ mod tests {
                     offset += k_len;
 
                     if bytes.len() < offset + 4 {
-                        return Err(ByteRagError::Storage("Invalid metadata value length".into()));
+                        return Err(ByteRagError::Storage(
+                            "Invalid metadata value length".into(),
+                        ));
                     }
                     let v_len =
                         u32::from_be_bytes(bytes[offset..offset + 4].try_into().unwrap()) as usize;
@@ -341,4 +343,3 @@ mod tests {
         assert_eq!(deserialized.version_key(), 999u64.to_be_bytes().to_vec());
     }
 }
-

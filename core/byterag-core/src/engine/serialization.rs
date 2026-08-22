@@ -56,7 +56,10 @@ impl SerializationRegistry {
     pub fn serialize(&self, type_name: &str, data: &[u8]) -> ByteRagResult<Vec<u8>> {
         let serializers = self.serializers.read().unwrap();
         let serializer = serializers.get(type_name).ok_or_else(|| {
-            ByteRagError::Serialization(format!("No serializer registered for type '{}'", type_name))
+            ByteRagError::Serialization(format!(
+                "No serializer registered for type '{}'",
+                type_name
+            ))
         })?;
 
         serializer(data)
@@ -308,5 +311,3 @@ mod tests {
         assert_eq!(cache.get("key1").unwrap(), None);
     }
 }
-
-

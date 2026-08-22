@@ -986,5 +986,3 @@ impl Database {
         Ok(db_arc)
     }
 }
-
-

@@ -61,4 +61,3 @@ fn test_auto_expand_range_partition() -> ByteRagResult<()> {
 
     Ok(())
 }
-

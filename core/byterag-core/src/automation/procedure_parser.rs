@@ -28,17 +28,21 @@ pub fn parse_create_procedure(sql: &str) -> ByteRagResult<StoredProcedure> {
 
     // Procedure 이름 추출
     let name_start = sql.find("PROCEDURE").unwrap() + 9;
-    let paren_pos = sql.find('(').ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing parameter list".to_string(),
-        context: "CREATE PROCEDURE parsing".to_string(),
-    })?;
+    let paren_pos = sql
+        .find('(')
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing parameter list".to_string(),
+            context: "CREATE PROCEDURE parsing".to_string(),
+        })?;
     let name = sql[name_start..paren_pos].trim().to_string();
 
     // 파라미터 추출
-    let params_end = sql.find(')').ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing closing parenthesis".to_string(),
-        context: "CREATE PROCEDURE parsing".to_string(),
-    })?;
+    let params_end = sql
+        .find(')')
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing closing parenthesis".to_string(),
+            context: "CREATE PROCEDURE parsing".to_string(),
+        })?;
     let params_str = sql[paren_pos + 1..params_end].trim();
 
     let mut parameters = Vec::new();
@@ -65,10 +69,12 @@ pub fn parse_create_procedure(sql: &str) -> ByteRagResult<StoredProcedure> {
             message: "Missing BEGIN".to_string(),
             context: "CREATE PROCEDURE parsing".to_string(),
         })?;
-    let end_pos = sql.rfind("END").ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing END".to_string(),
-        context: "CREATE PROCEDURE parsing".to_string(),
-    })?;
+    let end_pos = sql
+        .rfind("END")
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing END".to_string(),
+            context: "CREATE PROCEDURE parsing".to_string(),
+        })?;
 
     let body_sql = sql[begin_pos + 5..end_pos].trim();
 
@@ -135,17 +141,21 @@ pub fn parse_call_procedure(sql: &str) -> ByteRagResult<(String, Vec<String>)> {
 
     // Procedure 이름 추출
     let name_start = 4; // "CALL".len()
-    let paren_pos = sql.find('(').ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing argument list".to_string(),
-        context: "CALL PROCEDURE parsing".to_string(),
-    })?;
+    let paren_pos = sql
+        .find('(')
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing argument list".to_string(),
+            context: "CALL PROCEDURE parsing".to_string(),
+        })?;
     let name = sql[name_start..paren_pos].trim().to_string();
 
     // 인자 추출
-    let args_end = sql.find(')').ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing closing parenthesis".to_string(),
-        context: "CALL PROCEDURE parsing".to_string(),
-    })?;
+    let args_end = sql
+        .find(')')
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing closing parenthesis".to_string(),
+            context: "CALL PROCEDURE parsing".to_string(),
+        })?;
     let args_str = sql[paren_pos + 1..args_end].trim();
 
     let mut arguments = Vec::new();
@@ -220,4 +230,3 @@ mod tests {
         assert_eq!(args[1], "100.50");
     }
 }
-

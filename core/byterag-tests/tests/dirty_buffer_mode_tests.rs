@@ -189,4 +189,3 @@ fn switch_mode_scan_consistency() {
         assert_eq!(all[i as usize].1, vec![i * 10]);
     }
 }
-

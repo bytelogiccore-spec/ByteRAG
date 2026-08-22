@@ -58,4 +58,3 @@ impl TablePolicy {
         serde_json::from_str(json).map_err(|e| e.to_string())
     }
 }
-

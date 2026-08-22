@@ -125,7 +125,9 @@ impl JobDag {
 
         // 순환 감지: 처리된 노드 수 != 전체 노드 수
         if order.len() != all_nodes.len() {
-            return Err(ByteRagError::InvalidArguments("순환 의존성 감지됨".to_string()));
+            return Err(ByteRagError::InvalidArguments(
+                "순환 의존성 감지됨".to_string(),
+            ));
         }
 
         Ok(order)
@@ -234,4 +236,3 @@ mod tests {
         assert!(c_pos < d_pos);
     }
 }
-

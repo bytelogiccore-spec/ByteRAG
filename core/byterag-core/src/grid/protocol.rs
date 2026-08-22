@@ -124,7 +124,8 @@ impl GridMessage {
 
     /// bincode를 사용해 메시지를 직렬화합니다.
     pub fn serialize(&self) -> crate::error::ByteRagResult<Vec<u8>> {
-        bincode::serialize(self).map_err(|e| crate::error::ByteRagError::Serialization(e.to_string()))
+        bincode::serialize(self)
+            .map_err(|e| crate::error::ByteRagError::Serialization(e.to_string()))
     }
 
     /// bincode를 사용해 바이트 배열로부터 메시지를 역직렬화합니다.
@@ -151,4 +152,3 @@ pub fn serialize_batch_to_ipc(
     }
     Ok(buf)
 }
-

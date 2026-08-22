@@ -145,4 +145,3 @@ impl Drop for SchedulerThread {
         let _ = self.stop();
     }
 }
-

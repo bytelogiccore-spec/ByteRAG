@@ -151,8 +151,8 @@ impl SpillContext {
 
         let mut batches = Vec::new();
         for result in reader {
-            let batch =
-                result.map_err(|e| ByteRagError::Storage(format!("Spill: batch 읽기 실패: {}", e)))?;
+            let batch = result
+                .map_err(|e| ByteRagError::Storage(format!("Spill: batch 읽기 실패: {}", e)))?;
             batches.push(batch);
         }
 
@@ -263,4 +263,3 @@ mod tests {
         assert_eq!(ctx.spill_count(), 2);
     }
 }
-

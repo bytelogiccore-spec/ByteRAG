@@ -72,9 +72,9 @@ impl GpuManager {
             let mut hash_table_keys = vec![-1i32; table_size];
             let mut hash_table_row_ids = vec![-1i32; table_size];
 
-            let mut hash_table_keys_dev = stream
-                .clone_htod(&hash_table_keys)
-                .map_err(|e| ByteRagError::Gpu(format!("Failed to alloc hash table keys: {:?}", e)))?;
+            let mut hash_table_keys_dev = stream.clone_htod(&hash_table_keys).map_err(|e| {
+                ByteRagError::Gpu(format!("Failed to alloc hash table keys: {:?}", e))
+            })?;
             let mut hash_table_row_ids_dev =
                 stream.clone_htod(&hash_table_row_ids).map_err(|e| {
                     ByteRagError::Gpu(format!("Failed to alloc hash table row IDs: {:?}", e))
@@ -82,14 +82,16 @@ impl GpuManager {
 
             // Create build row IDs (0, 1, 2, ...)
             let build_row_ids: Vec<i32> = (0..build_n as i32).collect();
-            let build_row_ids_dev = stream
-                .clone_htod(&build_row_ids)
-                .map_err(|e| ByteRagError::Gpu(format!("Failed to alloc build row IDs: {:?}", e)))?;
+            let build_row_ids_dev = stream.clone_htod(&build_row_ids).map_err(|e| {
+                ByteRagError::Gpu(format!("Failed to alloc build row IDs: {:?}", e))
+            })?;
 
             let build_func = self
                 .module
                 .load_function("hash_join_build_i32")
-                .map_err(|_| ByteRagError::Gpu("Kernel hash_join_build_i32 not found".to_string()))?;
+                .map_err(|_| {
+                    ByteRagError::Gpu("Kernel hash_join_build_i32 not found".to_string())
+                })?;
 
             let build_cfg = LaunchConfig::for_num_elems(build_n as u32);
             let build_n_i32 = build_n as i32;
@@ -115,12 +117,12 @@ impl GpuManager {
             let mut output_build_ids = vec![0i32; max_output_size];
             let mut match_count = vec![0i32; 1];
 
-            let mut output_probe_ids_dev = stream
-                .clone_htod(&output_probe_ids)
-                .map_err(|e| ByteRagError::Gpu(format!("Failed to alloc output probe IDs: {:?}", e)))?;
-            let mut output_build_ids_dev = stream
-                .clone_htod(&output_build_ids)
-                .map_err(|e| ByteRagError::Gpu(format!("Failed to alloc output build IDs: {:?}", e)))?;
+            let mut output_probe_ids_dev = stream.clone_htod(&output_probe_ids).map_err(|e| {
+                ByteRagError::Gpu(format!("Failed to alloc output probe IDs: {:?}", e))
+            })?;
+            let mut output_build_ids_dev = stream.clone_htod(&output_build_ids).map_err(|e| {
+                ByteRagError::Gpu(format!("Failed to alloc output build IDs: {:?}", e))
+            })?;
             let mut match_count_dev = stream
                 .clone_htod(&match_count)
                 .map_err(|e| ByteRagError::Gpu(format!("Failed to alloc match count: {:?}", e)))?;
@@ -128,7 +130,9 @@ impl GpuManager {
             let probe_func = self
                 .module
                 .load_function("hash_join_probe_i32")
-                .map_err(|_| ByteRagError::Gpu("Kernel hash_join_probe_i32 not found".to_string()))?;
+                .map_err(|_| {
+                    ByteRagError::Gpu("Kernel hash_join_probe_i32 not found".to_string())
+                })?;
 
             let probe_cfg = LaunchConfig::for_num_elems(probe_n as u32);
             let probe_n_i32 = probe_n as i32;
@@ -157,12 +161,12 @@ impl GpuManager {
                 .map_err(|e| ByteRagError::Gpu(format!("Failed to copy match count: {:?}", e)))?;
             let actual_matches = match_count[0] as usize;
 
-            output_probe_ids = stream
-                .clone_dtoh(&output_probe_ids_dev)
-                .map_err(|e| ByteRagError::Gpu(format!("Failed to copy output probe IDs: {:?}", e)))?;
-            output_build_ids = stream
-                .clone_dtoh(&output_build_ids_dev)
-                .map_err(|e| ByteRagError::Gpu(format!("Failed to copy output build IDs: {:?}", e)))?;
+            output_probe_ids = stream.clone_dtoh(&output_probe_ids_dev).map_err(|e| {
+                ByteRagError::Gpu(format!("Failed to copy output probe IDs: {:?}", e))
+            })?;
+            output_build_ids = stream.clone_dtoh(&output_build_ids_dev).map_err(|e| {
+                ByteRagError::Gpu(format!("Failed to copy output build IDs: {:?}", e))
+            })?;
 
             // Extract matched pairs
             let mut results = Vec::new();
@@ -174,4 +178,3 @@ impl GpuManager {
         }
     }
 }
-

@@ -7,12 +7,12 @@
 // 3. WAL 쓰기: 단일 파일 append vs PartitionedWalWriter
 // 4. 스키마 조회: HashMap 직접 조회 vs SchemaVersionManager (MVCC 포함)
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::engine::plan::PlanCache;
 use byterag_core::engine::schema_versioning::SchemaVersionManager;
 use byterag_core::sql::executor::parallel_query::{AggregateType, ParallelQueryExecutor};
 use byterag_core::wal::WalRecord;
 use byterag_core::wal::partitioned_wal::PartitionedWalWriter;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 use arrow::array::{Array, Int64Array, RecordBatch, StringArray};
 use arrow::datatypes::{DataType, Field, Schema};
@@ -239,4 +239,3 @@ criterion_group!(
     bench_before_after_repeated_sql,
 );
 criterion_main!(benches);
-

@@ -5,13 +5,13 @@
 // Section 3: WAL 병렬 쓰기 (PartitionedWalWriter)
 // Section 4: 스키마/인덱스 버전 관리
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::engine::index_versioning::{IndexType, IndexVersionManager};
 use byterag_core::engine::plan::PlanCache;
 use byterag_core::engine::schema_versioning::SchemaVersionManager;
 use byterag_core::sql::executor::parallel_query::{AggregateType, ParallelQueryExecutor};
 use byterag_core::wal::WalRecord;
 use byterag_core::wal::partitioned_wal::PartitionedWalWriter;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 use arrow::array::{Int64Array, RecordBatch, StringArray};
 use arrow::datatypes::{DataType, Field, Schema};
@@ -267,4 +267,3 @@ criterion_group!(
     bench_schema_index,
 );
 criterion_main!(benches);
-

@@ -205,5 +205,3 @@ mod tests {
         assert!(udfs.contains(&"func2".to_string()));
     }
 }
-
-

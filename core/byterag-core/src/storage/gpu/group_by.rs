@@ -134,7 +134,11 @@ impl GpuManager {
 
     /// GROUP BY with COUNT aggregation on GPU.
     /// Returns Vec<(group_key, count)>
-    pub fn group_by_count(&self, table: &str, group_column: &str) -> ByteRagResult<Vec<(i32, i32)>> {
+    pub fn group_by_count(
+        &self,
+        table: &str,
+        group_column: &str,
+    ) -> ByteRagResult<Vec<(i32, i32)>> {
         #[cfg(not(feature = "gpu"))]
         {
             let _ = (table, group_column);
@@ -177,7 +181,9 @@ impl GpuManager {
             let func = self
                 .module
                 .load_function("group_by_count_i32")
-                .map_err(|_| ByteRagError::Gpu("Kernel group_by_count_i32 not found".to_string()))?;
+                .map_err(|_| {
+                    ByteRagError::Gpu("Kernel group_by_count_i32 not found".to_string())
+                })?;
 
             let cfg = LaunchConfig::for_num_elems(n as u32);
             let n_i32 = n as i32;
@@ -332,4 +338,3 @@ impl GpuManager {
         }
     }
 }
-

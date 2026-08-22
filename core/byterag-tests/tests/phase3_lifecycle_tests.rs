@@ -124,4 +124,3 @@ fn test_lifecycle_boundary_exact_days() -> ByteRagResult<()> {
     assert!(db.partition_needs_archive("boundary", boundary_ts)?);
     Ok(())
 }
-

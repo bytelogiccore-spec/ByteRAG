@@ -88,4 +88,3 @@ fn test_parse_create_procedure_no_params() {
     assert_eq!(proc.parameters.len(), 0);
     assert_eq!(proc.body.len(), 2);
 }
-

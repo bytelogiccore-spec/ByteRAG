@@ -97,13 +97,13 @@ impl ProcedureExecutor {
     /// Procedure 실행
     pub fn execute(&self, db: &Database, name: &str, arguments: &[String]) -> ByteRagResult<()> {
         // Procedure 조회
-        let procedure = self
-            .procedures
-            .get(name)
-            .ok_or_else(|| ByteRagError::InvalidOperation {
-                message: format!("Procedure '{}' not found", name),
-                context: "CALL PROCEDURE".to_string(),
-            })?;
+        let procedure =
+            self.procedures
+                .get(name)
+                .ok_or_else(|| ByteRagError::InvalidOperation {
+                    message: format!("Procedure '{}' not found", name),
+                    context: "CALL PROCEDURE".to_string(),
+                })?;
 
         // 파라미터 개수 검증
         if arguments.len() != procedure.parameters.len() {
@@ -220,4 +220,3 @@ mod tests {
         assert_eq!(found.unwrap().name, "test_proc");
     }
 }
-

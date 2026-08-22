@@ -2,8 +2,8 @@
 //!
 //! UPDATE와 DELETE의 SQL vs KV API 성능 비교
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 
 /// 테스트용 데이터베이스 생성 및 초기 데이터 삽입
 fn setup_db_with_data(num_rows: usize) -> Database {
@@ -289,4 +289,3 @@ criterion_group!(
 );
 
 criterion_main!(update_benches, delete_benches);
-

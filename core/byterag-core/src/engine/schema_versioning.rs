@@ -264,5 +264,3 @@ mod tests {
         assert_eq!(current.fields().len(), 1);
     }
 }
-
-

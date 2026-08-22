@@ -432,7 +432,10 @@ impl Database {
     ///
     /// 이후 해당 `table`로 들어오는 INSERT는 키 값에 따라
     /// `route_key()`가 반환하는 내부 sub-table로 라우팅됩니다.
-    pub fn create_partition(&self, map: crate::storage::partition::PartitionMap) -> ByteRagResult<()> {
+    pub fn create_partition(
+        &self,
+        map: crate::storage::partition::PartitionMap,
+    ) -> ByteRagResult<()> {
         let table_name = map.table.clone();
         self.partition_maps.write().unwrap().insert(table_name, map);
         Ok(())
@@ -917,5 +920,3 @@ impl Database {
         self.view_registry.drop(name)
     }
 }
-
-

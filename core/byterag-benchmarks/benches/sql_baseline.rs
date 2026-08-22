@@ -3,8 +3,8 @@
 // 사용법:
 // cargo bench --bench sql_baseline
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 // ════════════════════════════════════════════
 // SQL DDL Benchmarks
@@ -72,4 +72,3 @@ criterion_group!(
     bench_sql_select
 );
 criterion_main!(sql_baseline);
-

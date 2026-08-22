@@ -85,7 +85,11 @@ impl EventHook {
     }
 
     /// 액션 실행
-    pub fn execute_action(&self, ctx: &ExecutionContext, event: &EventHookEvent) -> ByteRagResult<()> {
+    pub fn execute_action(
+        &self,
+        ctx: &ExecutionContext,
+        event: &EventHookEvent,
+    ) -> ByteRagResult<()> {
         match &self.action {
             EventHookAction::CallUdf(udf_name) => {
                 // 이벤트 데이터를 인자로 변환하여 UDF 호출
@@ -288,4 +292,3 @@ mod tests {
         assert!(hook.fire(&ctx, &event).is_ok());
     }
 }
-

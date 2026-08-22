@@ -62,4 +62,3 @@ impl PhysicalOperator for ProjectionOperator {
         self.input.reset()
     }
 }
-

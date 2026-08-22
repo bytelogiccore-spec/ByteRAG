@@ -53,7 +53,11 @@ impl TriggerRegistry {
     }
 
     /// 이벤트에 매칭되는 트리거를 찾아서 조건 평가 후 실행
-    pub fn fire(&self, ctx: &ExecutionContext, event: &EventHookEvent) -> ByteRagResult<Vec<String>> {
+    pub fn fire(
+        &self,
+        ctx: &ExecutionContext,
+        event: &EventHookEvent,
+    ) -> ByteRagResult<Vec<String>> {
         let triggers = self
             .triggers
             .read()
@@ -323,5 +327,3 @@ mod tests {
         assert!(jobs.contains(&"triple_job".to_string()));
     }
 }
-
-

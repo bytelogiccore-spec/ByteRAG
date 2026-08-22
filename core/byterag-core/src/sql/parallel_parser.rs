@@ -112,12 +112,12 @@ impl ParallelSqlParser {
         }
 
         // Parallel execution
-        let results: Vec<Option<ByteRagResult<Vec<Statement>>>> = if let Some(pool) = &self.thread_pool
-        {
-            pool.install(|| self.parallel_parse_adaptive(sqls, avg_complexity))
-        } else {
-            self.parallel_parse_adaptive(sqls, avg_complexity)
-        };
+        let results: Vec<Option<ByteRagResult<Vec<Statement>>>> =
+            if let Some(pool) = &self.thread_pool {
+                pool.install(|| self.parallel_parse_adaptive(sqls, avg_complexity))
+            } else {
+                self.parallel_parse_adaptive(sqls, avg_complexity)
+            };
 
         results
             .into_iter()
@@ -401,4 +401,3 @@ mod tests {
         assert_eq!(statements.len(), 2);
     }
 }
-

@@ -53,4 +53,3 @@ fn test_open_in_memory_has_no_file_persistence() {
         .unwrap_err();
     assert!(err.to_string().contains("file-backed") || err.to_string().contains("path"));
 }
-

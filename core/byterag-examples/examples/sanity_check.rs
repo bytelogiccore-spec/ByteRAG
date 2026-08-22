@@ -77,4 +77,3 @@ fn main() -> byterag_core::ByteRagResult<()> {
     );
     Ok(())
 }
-

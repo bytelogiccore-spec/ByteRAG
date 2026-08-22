@@ -6,7 +6,8 @@ use crate::automation::callable::{Callable, ExecutionContext, Signature, Value};
 use crate::error::ByteRagResult;
 
 /// Type alias for table UDF function
-type TableFn = Box<dyn Fn(&ExecutionContext, &[Value]) -> ByteRagResult<Vec<Vec<Value>>> + Send + Sync>;
+type TableFn =
+    Box<dyn Fn(&ExecutionContext, &[Value]) -> ByteRagResult<Vec<Vec<Value>>> + Send + Sync>;
 
 /// Table UDF
 pub struct TableUDF {
@@ -19,7 +20,10 @@ impl TableUDF {
     /// 새 Table UDF 생성
     pub fn new<F>(name: impl Into<String>, signature: Signature, func: F) -> Self
     where
-        F: Fn(&ExecutionContext, &[Value]) -> ByteRagResult<Vec<Vec<Value>>> + Send + Sync + 'static,
+        F: Fn(&ExecutionContext, &[Value]) -> ByteRagResult<Vec<Vec<Value>>>
+            + Send
+            + Sync
+            + 'static,
     {
         Self {
             name: name.into(),
@@ -46,7 +50,11 @@ impl Callable for TableUDF {
 
 impl TableUDF {
     /// 테이블 데이터 반환 (실제 구현용)
-    pub fn execute(&self, ctx: &ExecutionContext, args: &[Value]) -> ByteRagResult<Vec<Vec<Value>>> {
+    pub fn execute(
+        &self,
+        ctx: &ExecutionContext,
+        args: &[Value],
+    ) -> ByteRagResult<Vec<Vec<Value>>> {
         (self.func)(ctx, args)
     }
 }
@@ -193,4 +201,3 @@ mod tests {
         assert_eq!(table[0][0].as_i64().unwrap(), 0);
     }
 }
-

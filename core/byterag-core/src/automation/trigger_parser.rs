@@ -126,10 +126,12 @@ pub fn parse_create_trigger(sql: &str) -> ByteRagResult<Trigger> {
             message: "Missing BEGIN".to_string(),
             context: "CREATE TRIGGER parsing".to_string(),
         })?;
-    let end_pos = sql.rfind("END").ok_or_else(|| ByteRagError::InvalidOperation {
-        message: "Missing END".to_string(),
-        context: "CREATE TRIGGER parsing".to_string(),
-    })?;
+    let end_pos = sql
+        .rfind("END")
+        .ok_or_else(|| ByteRagError::InvalidOperation {
+            message: "Missing END".to_string(),
+            context: "CREATE TRIGGER parsing".to_string(),
+        })?;
 
     let body_sql = sql[begin_pos + 5..end_pos].trim();
 
@@ -252,4 +254,3 @@ mod tests {
         assert!(parse_create_trigger(sql).is_err());
     }
 }
-

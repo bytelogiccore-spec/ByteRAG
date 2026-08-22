@@ -1,8 +1,8 @@
 // Cleanup performance benchmarks — measures impact of Phase 1 cleanup changes
 // Targets: insert, get, scan, range, table_row_count, batch_insert
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 fn bench_crud_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("crud_cleanup");
@@ -118,4 +118,3 @@ fn bench_crud_operations(c: &mut Criterion) {
 
 criterion_group!(benches, bench_crud_operations);
 criterion_main!(benches);
-

@@ -174,4 +174,3 @@ mod tests {
         assert_eq!(result.as_i64().unwrap(), 42);
     }
 }
-

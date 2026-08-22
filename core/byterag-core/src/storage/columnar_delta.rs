@@ -533,4 +533,3 @@ mod tests {
         assert!(tables.contains(&"orders".to_string()));
     }
 }
-

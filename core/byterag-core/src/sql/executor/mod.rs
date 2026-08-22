@@ -33,4 +33,3 @@ pub fn concat_batches(schema: &Arc<Schema>, batches: &[RecordBatch]) -> ByteRagR
     }
     Ok(compute::concat_batches(schema, batches)?)
 }
-

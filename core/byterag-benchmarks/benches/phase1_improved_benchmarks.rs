@@ -2,10 +2,10 @@
 //
 // 더 큰 데이터 크기, 복잡한 SQL 쿼리, 큰 배치 크기
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::engine::TwoLevelCache;
 use byterag_core::sql::ParallelSqlParser;
 use byterag_core::transaction::{TimestampOracle, VersionManager};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -197,4 +197,3 @@ criterion_group!(
     bench_version_manager_large_scale
 );
 criterion_main!(benches);
-

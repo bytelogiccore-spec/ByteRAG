@@ -1,6 +1,6 @@
+use super::simd::{Metric, cosine_similarity, dot_product, l2_distance};
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
-use super::simd::{cosine_similarity, dot_product, l2_distance, Metric};
 
 #[derive(Debug, Clone)]
 pub struct VectorSearchResult {
@@ -41,7 +41,10 @@ impl PartialOrd for HeapEntry {
 impl Ord for HeapEntry {
     fn cmp(&self, other: &Self) -> Ordering {
         // Reverse for min-heap
-        other.score.partial_cmp(&self.score).unwrap_or(Ordering::Equal)
+        other
+            .score
+            .partial_cmp(&self.score)
+            .unwrap_or(Ordering::Equal)
     }
 }
 

@@ -94,4 +94,3 @@ mod tests {
         assert_eq!(job.args().len(), 1);
     }
 }
-

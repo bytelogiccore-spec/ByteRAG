@@ -381,7 +381,9 @@ impl TableStore {
         let page_count = u32::from_le_bytes(footer[8..12].try_into().unwrap()) as usize;
         let magic = u32::from_le_bytes(footer[12..16].try_into().unwrap());
         if magic != FOOTER_MAGIC {
-            return Err(ByteRagError::Storage("TableStore: invalid footer magic".into()));
+            return Err(ByteRagError::Storage(
+                "TableStore: invalid footer magic".into(),
+            ));
         }
         self.file.seek(SeekFrom::Start(index_offset))?;
         let index_size = (file_len - FOOTER_SIZE - index_offset) as usize;
@@ -1048,4 +1050,3 @@ mod tests {
         assert_eq!(s.get(b"a").unwrap(), Some(b"new".to_vec()));
     }
 }
-

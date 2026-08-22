@@ -14,8 +14,8 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use redb::{Database as RedbDatabase, ReadableTable, TableDefinition};
 use rusqlite::Connection;
 use tempfile::tempdir;
@@ -282,7 +282,12 @@ fn bench_redb_scan(c: &mut Criterion) {
 // Criterion Groups
 // ═══════════════════════════════════════════════════════════════════════════
 
-criterion_group!(byterag_benches, bench_byterag_insert, bench_byterag_get, bench_byterag_scan);
+criterion_group!(
+    byterag_benches,
+    bench_byterag_insert,
+    bench_byterag_get,
+    bench_byterag_scan
+);
 
 criterion_group!(
     sqlite_benches,
@@ -306,4 +311,3 @@ criterion_group!(
 );
 
 criterion_main!(byterag_benches, sqlite_benches, sled_benches, redb_benches);
-

@@ -218,8 +218,9 @@ impl ColumnarCache {
             if !file_path.exists() {
                 break;
             }
-            fs::remove_file(&file_path)
-                .map_err(|e| ByteRagError::Storage(format!("Failed to remove cache file: {}", e)))?;
+            fs::remove_file(&file_path).map_err(|e| {
+                ByteRagError::Storage(format!("Failed to remove cache file: {}", e))
+            })?;
             idx += 1;
         }
 
@@ -337,8 +338,9 @@ impl ColumnarCache {
         // Clear table and insert consolidated batch
         self.clear_table(table)?;
         if !batches.is_empty() {
-            let consolidated = arrow::compute::concat_batches(&schema, &batches)
-                .map_err(|e| ByteRagError::Storage(format!("Failed to consolidate batches: {}", e)))?;
+            let consolidated = arrow::compute::concat_batches(&schema, &batches).map_err(|e| {
+                ByteRagError::Storage(format!("Failed to consolidate batches: {}", e))
+            })?;
             self.insert_typed_batch(table, schema, consolidated)?;
         }
 
@@ -818,4 +820,3 @@ mod tests {
         assert_eq!(ids.value(1), 3);
     }
 }
-

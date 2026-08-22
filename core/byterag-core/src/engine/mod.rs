@@ -59,4 +59,3 @@ pub use snapshot::{DatabaseSnapshot, TableData};
 pub use stream_ingester::{StreamEvent, StreamIngester};
 pub use types::{DurabilityLevel, TablePersistence};
 pub use wos_variant::WosVariant;
-

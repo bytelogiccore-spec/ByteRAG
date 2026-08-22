@@ -436,4 +436,3 @@ mod tests {
         assert_eq!(checkpoint_mgr.interval(), Duration::from_secs(60));
     }
 }
-

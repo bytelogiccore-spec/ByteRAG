@@ -9,7 +9,10 @@ use super::LogicalPlanner;
 
 impl LogicalPlanner {
     /// Custom statement 파싱 (CREATE FUNCTION, CREATE TRIGGER, CREATE JOB)
-    pub(super) fn parse_custom_statement(&self, statement: &Statement) -> ByteRagResult<LogicalPlan> {
+    pub(super) fn parse_custom_statement(
+        &self,
+        statement: &Statement,
+    ) -> ByteRagResult<LogicalPlan> {
         // Statement를 문자열로 변환
         let sql = format!("{}", statement);
         let sql_upper = sql.to_uppercase();
@@ -205,4 +208,3 @@ impl LogicalPlanner {
         })
     }
 }
-

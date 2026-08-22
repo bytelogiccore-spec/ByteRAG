@@ -126,4 +126,3 @@ impl<T: FromColumn> FromColumn for Option<T> {
         }
     }
 }
-

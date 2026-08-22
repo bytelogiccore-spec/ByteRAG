@@ -233,7 +233,10 @@ pub struct GridMessageWrapper {
 
 impl GridMessageWrapper {
     /// 요청을 보낸 스트림을 통해 응답을 전송합니다.
-    pub async fn send_reply(&mut self, reply: crate::grid::protocol::GridMessage) -> ByteRagResult<()> {
+    pub async fn send_reply(
+        &mut self,
+        reply: crate::grid::protocol::GridMessage,
+    ) -> ByteRagResult<()> {
         if let Some(stream) = &mut self.stream {
             let bytes = reply.serialize()?;
             let len = (bytes.len() as u32).to_be_bytes();
@@ -328,4 +331,3 @@ mod tests {
         }
     }
 }
-

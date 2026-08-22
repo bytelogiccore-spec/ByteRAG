@@ -335,5 +335,3 @@ mod tests {
         assert!(slow.avg_time_ms > fast.avg_time_ms);
     }
 }
-
-

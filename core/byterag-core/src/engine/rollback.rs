@@ -300,5 +300,3 @@ mod tests {
         let _ = manager.delete_checkpoint("test_cp_3");
     }
 }
-
-

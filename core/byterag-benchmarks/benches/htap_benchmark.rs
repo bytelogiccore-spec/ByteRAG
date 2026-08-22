@@ -8,9 +8,9 @@
 // Section 4: WorkloadAnalyzer 전환 오버헤드
 // Section 5: 모니터링 메트릭 기록 비용
 
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use byterag_core::Database;
 use byterag_core::engine::workload_analyzer::{QueryPattern, WorkloadAnalyzer};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -406,4 +406,3 @@ criterion_group!(
     bench_monitoring_overhead,
 );
 criterion_main!(benches);
-

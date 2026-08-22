@@ -60,4 +60,3 @@ pub fn init_with_level(_level: &str) {}
 
 #[cfg(not(feature = "logging"))]
 pub fn init_test() {}
-

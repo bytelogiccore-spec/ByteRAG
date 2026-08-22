@@ -41,5 +41,3 @@ impl Database {
         QueryBuilder::new(self)
     }
 }
-
-
