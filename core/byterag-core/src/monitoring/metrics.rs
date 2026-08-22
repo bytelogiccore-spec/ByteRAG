@@ -235,8 +235,8 @@ impl ByteRagMetrics {
             wal_appends_total: self.wal_appends_total.load(Ordering::Relaxed),
             wal_compactions_total: self.wal_compactions_total.load(Ordering::Relaxed),
 
-            avg_query_latency_us: if q_count > 0 { q_sum / q_count } else { 0 },
-            avg_insert_latency_us: if i_count > 0 { i_sum / i_count } else { 0 },
+            avg_query_latency_us: q_sum.checked_div(q_count).unwrap_or(0),
+            avg_insert_latency_us: i_sum.checked_div(i_count).unwrap_or(0),
 
             delta_hit_rate: if delta_total > 0 {
                 delta_hits as f64 / delta_total as f64

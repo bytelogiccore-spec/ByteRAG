@@ -153,7 +153,7 @@ impl<T: Versionable> VersionManager<T> {
 
         let mut deleted_count = 0;
 
-        for (_key, version_list) in versions.iter_mut() {
+        for version_list in versions.values_mut() {
             if version_list.len() <= 1 {
                 // 버전이 1개 이하면 GC 불필요
                 continue;

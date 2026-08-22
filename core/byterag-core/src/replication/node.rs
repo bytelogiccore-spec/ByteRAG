@@ -95,7 +95,7 @@ impl QuorumAckTracker {
         if let Some(mut entry) = self.pending.get_mut(&lsn) {
             entry.0 += 1;
             if entry.0 >= quorum {
-                let senders: Vec<_> = entry.1.drain(..).collect();
+                let senders: Vec<_> = std::mem::take(&mut entry.1);
                 drop(entry);
                 self.pending.remove(&lsn);
                 for s in senders {

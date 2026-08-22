@@ -99,7 +99,7 @@ impl GarbageCollector {
             // For each user_key, keep only recent versions
             for (_user_key, mut versions) in key_versions {
                 // Sort by commit_ts descending (newest first)
-                versions.sort_by(|a, b| b.1.cmp(&a.1));
+                versions.sort_by_key(|a| std::cmp::Reverse(a.1));
 
                 // Keep the first `min_versions_per_key` versions
                 let to_keep = self.min_versions_per_key;
