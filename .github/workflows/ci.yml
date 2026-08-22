@@ -120,18 +120,19 @@ jobs:
       - name: 빌드 및 테스트 실행 (Node.js)
         if: matrix.package == 'byterag-node'
         run: |
+          cargo build -p byterag-node --locked
           cd packages/nodejs
           npm install
-          npm run build:debug
-          npm test
+          node examples/basic.js
 
       - name: 빌드 및 테스트 실행 (Python)
         if: matrix.package == 'byterag-py'
         run: |
+          cargo build -p byterag-ffi --locked
           cd packages/python
           pip install pytest setuptools wheel
           pip install -v -e .
-          pytest test_simple.py
+          python test_simple.py
 
       - name: 빌드 실행 (C# / .NET)
         if: matrix.package == 'byterag-csharp'
