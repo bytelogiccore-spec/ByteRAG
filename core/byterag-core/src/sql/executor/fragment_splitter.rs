@@ -294,11 +294,7 @@ fn extract_output_columns(plan: &PhysicalPlan) -> usize {
             ..
         } => group_by.len() + aggregates.len(),
         PhysicalPlan::Projection { exprs, .. } => exprs.len(),
-        PhysicalPlan::TableScan {
-            projection,
-            ros_files: _,
-            ..
-        } => {
+        PhysicalPlan::TableScan { projection, .. } => {
             if projection.is_empty() {
                 8
             } else {
