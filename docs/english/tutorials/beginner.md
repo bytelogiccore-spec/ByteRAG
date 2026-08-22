@@ -3,13 +3,13 @@ layout: default
 title: Beginner Tutorial
 parent: English
 nav_order: 30
-description: "Step-by-step tutorial for DBX beginners"
+description: "Step-by-step tutorial for ByteRAG beginners"
 ---
 
 # Beginner Tutorial
 {: .no_toc }
 
-Step-by-step guide to get started with DBX.
+Step-by-step guide to get started with ByteRAG.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -22,10 +22,10 @@ Step-by-step guide to get started with DBX.
 
 ## Introduction
 
-This tutorial will guide you through creating your first DBX database, performing basic operations, and running simple SQL queries.
+This tutorial will guide you through creating your first ByteRAG database, performing basic operations, and running simple SQL queries.
 
 **What you'll learn:**
-- Installing DBX
+- Installing ByteRAG
 - Creating a database
 - Inserting and querying data
 - Using transactions
@@ -46,7 +46,7 @@ cargo new my_byterag_app
 cd my_byterag_app
 ```
 
-Add DBX to `Cargo.toml`:
+Add ByteRAG to `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -376,7 +376,7 @@ fn main() -> byterag_core::ByteRagResult<()> {
 
 ## Next Steps
 
-Congratulations! You've learned the basics of DBX. Here's what to explore next:
+Congratulations! You've learned the basics of ByteRAG. Here's what to explore next:
 
 - **[Intermediate Tutorial](intermediate)** — Learn advanced features
 - **[CRUD Operations Guide](../guides/crud-operations)** — Deep dive into CRUD
@@ -454,6 +454,7 @@ Try these exercises to practice:
 
 - **[Documentation](../)** — Full documentation
 - **[Examples](../examples/quick-start)** — More code examples
-- **[GitHub Issues](https://github.com/ByteLogicCore/DBX/issues)** — Report bugs
-- **[Discussions](https://github.com/ByteLogicCore/DBX/discussions)** — Ask questions
+- **[GitHub Issues](https://github.com/bytelogiccore-spec/ByteRAG/issues)** — Report bugs
+- **[Discussions](https://github.com/bytelogiccore-spec/ByteRAG/discussions)** — Ask questions
+
 

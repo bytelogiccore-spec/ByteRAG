@@ -12,7 +12,7 @@ readme = "README.md"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-byterag-core = { path = "../byterag-core", version = "0.1.0" }
+byterag-core = { path = "../byterag-core", version = "0.3.0" }
 libc = "0.2"
 
 

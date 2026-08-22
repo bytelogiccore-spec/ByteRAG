@@ -11,7 +11,7 @@ has_children: true
 
 [![NuGet](https://img.shields.io/nuget/v/DBX.Dotnet.svg)](https://www.nuget.org/packages/DBX.Dotnet/)
 
-고성능 임베디드 데이터베이스 DBX의 공식 .NET 바인딩입니다.
+고성능 임베디드 데이터베이스 ByteRAG의 공식 .NET 바인딩입니다.
 
 ## 주요 기능
 
@@ -58,10 +58,12 @@ using (var db = Database.OpenInMemory())
 
 ## 버전 정보
 
-- **현재 버전**: {{ site.dbx_version }}
+- **현재 버전**: {{ site.byterag_version }}
 - **.NET 요구사항**: .NET Standard 2.0+ (.NET Framework 4.6.1+, .NET Core 2.0+, .NET 5+)
 - **플랫폼**: Windows x64 (Linux/macOS 계획됨)
 
 ## 라이선스
 
 MIT License
+
+

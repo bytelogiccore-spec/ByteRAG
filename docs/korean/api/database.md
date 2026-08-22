@@ -8,7 +8,7 @@ parent: 한국어
 # 데이터베이스 API
 {: .no_toc }
 
-DBX의 핵심 데이터베이스 작업을 위한 API 레퍼런스입니다.
+ByteRAG의 핵심 데이터베이스 작업을 위한 API 레퍼런스입니다.
 {: .fs-6 .fw-300 }
 
 ---
@@ -83,4 +83,5 @@ SQL 쿼리를 실행하고 결과를 Arrow `RecordBatch` 형식으로 반환합�
 - [트랜잭션 가이드](../guides/transactions) — 비즈니스 로직에서의 트랜잭션 활용
 - [CRUD 작업 가이드](../guides/crud-operations) — 상세한 사용 예시
 - [SQL 레퍼런스](../guides/sql-reference) — 복잡한 쿼리 처리 방법
+
 

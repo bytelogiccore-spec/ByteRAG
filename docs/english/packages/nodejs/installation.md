@@ -40,7 +40,7 @@ pnpm add byterag-py
 const { Database } = require('byterag-py');
 
 const db = Database.openInMemory();
-console.log('DBX Node.js loaded successfully!');
+console.log('ByteRAG Node.js loaded successfully!');
 db.close();
 ```
 
@@ -108,4 +108,5 @@ npm list byterag-py
 - [Quick Start](quickstart) - Get started in 5 minutes
 - [SQL Guide](sql-guide) - SQL usage
 - [API Reference](api-reference) - Complete API
+
 

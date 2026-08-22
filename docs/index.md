@@ -5,9 +5,9 @@ nav_order: 1
 has_children: false
 ---
 
-# 🚀 DBX Documentation
+# 🚀 ByteRAG Documentation
 
-Welcome to the official documentation for DBX, a next-generation high-performance embedded database.
+Welcome to the official documentation for ByteRAG, a next-generation high-performance embedded database.
 
 ---
 
@@ -43,3 +43,4 @@ Welcome to the official documentation for DBX, a next-generation high-performanc
 ---
 
 © 2026 ByteLogicCore. MIT OR Apache-2.0 License.
+

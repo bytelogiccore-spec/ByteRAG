@@ -18,11 +18,11 @@ Copyright (c) 2026 ByteLogic Studio
 
 ---
 
-## 💝 DBX 개발 지원하기
+## 💝 ByteRAG 개발 지원하기
 
-DBX는 모든 사람에게 **무료이자 오픈 소스**인 고성능 순수 Rust SQL 엔진입니다.
+ByteRAG는 모든 사람에게 **무료이자 오픈 소스**인 고성능 순수 Rust SQL 엔진입니다.
 
-조직이 DBX를 통해 혜택을 얻고 있다면, 지속적인 개발을 위해 후원을 부탁드립니다:
+조직이 ByteRAG를 통해 혜택을 얻고 있다면, 지속적인 개발을 위해 후원을 부탁드립니다:
 
 ### 기업 및 대규모 조직용
 - **GitHub Sponsors**: [준비 중]
@@ -35,12 +35,14 @@ DBX는 모든 사람에게 **무료이자 오픈 소스**인 고성능 순수 Ru
 - 📚 문서 및 도구 개선
 - 🌟 오픈 소스 커뮤니티의 활성화 지원
 
-**후원은 자발적이지만 큰 힘이 됩니다!** 여러분의 후원은 저희가 DBX를 Rust를 위한 최고의 SQL 엔진으로 만드는 데 더 많은 시간을 할애할 수 있게 도와줍니다.
+**후원은 자발적이지만 큰 힘이 됩니다!** 여러분의 후원은 저희가 ByteRAG를 Rust를 위한 최고의 SQL 엔진으로 만드는 데 더 많은 시간을 할애할 수 있게 도와줍니다.
 
 ---
 
 ## 📦 제3자 의존성 (Third-Party Dependencies)
 
-DBX는 여러 오픈 소스 라이브러리를 사용합니다. 전체 의존성 목록과 라이선스는 다음을 참조하세요:
+ByteRAG는 여러 오픈 소스 라이브러리를 사용합니다. 전체 의존성 목록과 라이선스는 다음을 참조하세요:
 
-**[THIRD_PARTY_LICENSES.md](https://github.com/bytelogiccore-spec/DBX/blob/main/legal/korean/THIRD_PARTY_LICENSES.md)**
+**[THIRD_PARTY_LICENSES.md](https://github.com/bytelogiccore-spec/ByteRAG/blob/main/docs/korean/third-party-licenses.md)**
+
+

@@ -390,7 +390,7 @@ int main() {
 #include <vector>
 
 void worker(const std::string& dbPath, int threadId) {
-    auto db = dbx::Database::open(dbPath);
+    auto db = ByteRAG::Database::open(dbPath);
     
     for (int i = 0; i < 1000; i++) {
         std::string key = "thread:" + std::to_string(threadId) + ":key:" + std::to_string(i);
@@ -503,4 +503,5 @@ auto version = db.schemaVersion("users");  // → 2
 - [실전 예제](examples) - 더 많은 예제
 - [C API](c-api) - C 함수 레퍼런스
 - [C++ API](cpp-api) - C++ 클래스 레퍼런스
+
 

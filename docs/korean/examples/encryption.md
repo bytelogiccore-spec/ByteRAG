@@ -7,7 +7,7 @@ nav_order: 13
 
 # Encryption Quick Start
 
-DBX에서 암호화를 사용하는 가장 빠른 방법입니다.
+ByteRAG에서 암호화를 사용하는 가장 빠른 방법입니다.
 
 ## 1. 암호화된 데이터베이스 생성
 
@@ -90,4 +90,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**Encryption Guide**](../guides/encryption.md) — 완전한 암호화 가이드
 - [**Compression**](compression.md) — 데이터 압축
 - [**Quick Start**](quick-start.md) — 기본 CRUD
+
 

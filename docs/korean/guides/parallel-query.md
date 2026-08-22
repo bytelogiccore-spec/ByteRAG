@@ -15,7 +15,7 @@ nav_order: 34
 
 ## 개요
 
-DBX의 병렬 쿼리 실행기는 여러 RecordBatch를 동시에 처리합니다. 데이터가 충분히 클 때만 병렬화하여 소규모 데이터에서는 오버헤드를 방지합니다.
+ByteRAG의 병렬 쿼리 실행기는 여러 RecordBatch를 동시에 처리합니다. 데이터가 충분히 클 때만 병렬화하여 소규모 데이터에서는 오버헤드를 방지합니다.
 
 ```
 소규모 (< 1,000행):  순차 실행    → 오버헤드 없음
@@ -79,4 +79,5 @@ let executor = ParallelQueryExecutor::new()
 
 - [플랜 캐시 가이드](plan-cache) — SQL 반복 실행 최적화
 - [WAL 복구 가이드](wal-recovery) — WAL 파티셔닝과의 연계
+
 

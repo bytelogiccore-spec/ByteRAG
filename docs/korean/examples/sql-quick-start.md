@@ -7,7 +7,7 @@ nav_order: 12
 
 # SQL Quick Start
 
-DBX에서 SQL을 사용하는 가장 빠른 방법입니다.
+ByteRAG에서 SQL을 사용하는 가장 빠른 방법입니다.
 
 ## 1. 테이블 생성
 
@@ -99,4 +99,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**SQL Reference**](../guides/sql-reference.md) — 완전한 SQL 레퍼런스
 - [**GPU Acceleration**](../guides/gpu-acceleration.md) — SQL 쿼리 가속화
 - [**Indexing**](indexing.md) — 쿼리 최적화
+
 

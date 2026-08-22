@@ -1,19 +1,19 @@
-name: ByteLogicCore Documentation
-description: High-performance embedded database built on 5-Tier Hybrid Storage architecture
+name: ByteRAG Documentation
+description: Ultra-fast embedded multi-model database for AI and GraphRAG
 
 # Theme
 theme: just-the-docs
 color_scheme: dark
 
 # Version (single source of truth for all docs)
-dbx_version: "0.0.6-beta"
-dbx_py_version: "0.0.6-beta"
-dbx_node_version: "0.0.6-beta"
-dbx_dotnet_version: "0.0.6-beta"
+byterag_version: "0.3.0"
+byterag_py_version: "0.3.0"
+byterag_node_version: "0.3.0"
+byterag_dotnet_version: "0.3.0"
 
 # Site settings
 url: https://bytelogiccore-spec.github.io
-baseurl: /DBX
+baseurl: /ByteRAG
 logo: /assets/images/logo.png  # 이미지 저장 후 주석 해제 예정
 
 # Navigation
@@ -32,9 +32,9 @@ footer_content: "Copyright &copy; 2026 ByteLogicCore. MIT OR Apache-2.0 License.
 # Aux links
 aux_links:
   "GitHub":
-    - "https://github.com/bytelogiccore-spec/DBX"
+    - "https://github.com/bytelogiccore-spec/ByteRAG"
   "Rust Docs":
-    - "https://docs.rs/dbx-core"
+    - "https://docs.rs/byterag-core"
 
 # Plugins
 plugins:

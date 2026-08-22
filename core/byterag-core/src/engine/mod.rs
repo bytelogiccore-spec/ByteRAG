@@ -38,6 +38,8 @@ mod async_tests;
 #[cfg(test)]
 mod cas_tests;
 #[cfg(test)]
+mod flush_wal_tests;
+#[cfg(test)]
 mod parallel_engine_tests;
 #[cfg(test)]
 mod serde_tests;

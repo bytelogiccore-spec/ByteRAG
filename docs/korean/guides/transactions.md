@@ -3,13 +3,13 @@ layout: default
 title: 트랜잭션
 parent: 한국어
 nav_order: 22
-description: "DBX의 MVCC 트랜잭션 및 동시성 제어"
+description: "ByteRAG의 MVCC 트랜잭션 및 동시성 제어"
 ---
 
 # 트랜잭션
 {: .no_toc }
 
-DBX의 MVCC 트랜잭션 및 동시성 제어에 대한 종합 가이드입니다.
+ByteRAG의 MVCC 트랜잭션 및 동시성 제어에 대한 종합 가이드입니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,7 +22,7 @@ DBX의 MVCC 트랜잭션 및 동시성 제어에 대한 종합 가이드입니�
 
 ## 개요
 
-DBX는 높은 동시성을 허용하면서 ACID 보장을 제공하기 위해 **스냅샷 격리(Snapshot Isolation)** 기능이 포함된 **다중 버전 동시성 제어(MVCC)**를 구현합니다.
+ByteRAG는 높은 동시성을 허용하면서 ACID 보장을 제공하기 위해 **스냅샷 격리(Snapshot Isolation)** 기능이 포함된 **다중 버전 동시성 제어(MVCC)**를 구현합니다.
 
 ### 주요 특징
 
@@ -95,7 +95,7 @@ tx.rollback()?; // 변경 사항 폐기
 
 ### 쓰기-쓰기 충돌
 
-DBX는 동일한 레코드에 대한 동시 쓰기를 감지합니다:
+ByteRAG는 동일한 레코드에 대한 동시 쓰기를 감지합니다:
 
 ```rust
 match tx2.commit() {
@@ -121,4 +121,5 @@ match tx2.commit() {
 - [CRUD 작업](crud-operations) — 기본 데이터베이스 작업
 - [SQL 레퍼런스](sql-reference) — 트랜잭션 내에서 SQL 사용하기
 - [API 레퍼런스](../api/transaction) — 전체 트랜잭션 API
+
 

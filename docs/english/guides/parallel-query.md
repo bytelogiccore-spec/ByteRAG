@@ -15,7 +15,7 @@ Process large datasets in parallel using Rayon thread pools.
 
 ## Overview
 
-DBX's parallel query executor processes multiple RecordBatches concurrently. Parallelization only activates when data is large enough, avoiding overhead on small datasets.
+ByteRAG's parallel query executor processes multiple RecordBatches concurrently. Parallelization only activates when data is large enough, avoiding overhead on small datasets.
 
 ```
 Small (< 1,000 rows):  Sequential    → No overhead
@@ -79,4 +79,5 @@ Parallel execution activates when **both** conditions are met:
 
 - [Plan Cache Guide](plan-cache) — Optimize repeated SQL execution
 - [WAL Recovery Guide](wal-recovery) — WAL partitioning synergy
+
 

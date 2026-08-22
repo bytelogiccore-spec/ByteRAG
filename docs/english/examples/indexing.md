@@ -7,7 +7,7 @@ nav_order: 15
 
 # Indexing Quick Start
 
-The fastest way to use custom indexing in DBX.
+The fastest way to use custom indexing in ByteRAG.
 
 ## 1. Creating a Bloom Filter Index
 
@@ -80,4 +80,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**Indexing Guide**](../guides/indexing.md) — Complete indexing guide
 - [**SQL Quick Start**](sql-quick-start.md) — SQL query optimization
 - [**Quick Start**](quick-start.md) — Basic CRUD
+
 

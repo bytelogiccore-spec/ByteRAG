@@ -92,3 +92,7 @@ packages/**/*.whl
 packages/**/*.nupkg
 
 packages/**/release/
+
+# Local ByteRAG / MCP index dumps
+.byterag/
+

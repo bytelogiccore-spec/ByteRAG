@@ -226,7 +226,7 @@ try {
   const db = Database.open('mydb.db');
   db.insert('users', Buffer.from('user:1'), Buffer.from('Alice'));
 } catch (error) {
-  console.error('DBX Error:', error);
+  console.error('ByteRAG Error:', error);
 }
 ```
 
@@ -235,4 +235,5 @@ try {
 - [SQL Guide](sql-guide) - SQL usage
 - [KV Operations](kv-operations) - Key-Value operations
 - [Examples](examples) - Real-world examples
+
 

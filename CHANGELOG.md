@@ -1,8 +1,44 @@
 # Changelog
 
-This document follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
+All notable changes to **ByteRAG** are documented in this file.
+
+This document follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
+and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+
+## [0.3.0] - 2026-08-23
+
+Durable storage lifecycle: synchronous WAL trim on `flush`, portable `.brdb` packs, and unified package versioning.
+
+### Added
+- **`export_to_file` / `open_from_file`** — Portable `.brdb` packs (v1 whole-blob; v2 TOC + seekable zstd frames via `export_to_file_version`).
+- **`WriteAheadLog::checkpoint_and_truncate`** — Checkpoint marker + rewrite under the WAL file mutex.
+
+### Changed
+- **`flush()`** — After Delta → WOS, synchronously checkpoints and truncates global `wal.log` (no idle-based trim; callers must call `flush()`).
+- **Version unification** — Workspace and language bindings aligned to **0.3.0**.
+
+### Performance notes
+- Insert hot path unchanged in design; `flush` / export may be heavier because WAL rewrite and pack I/O run synchronously.
+
+---
+
+## [0.1.0] - 2026-08-22
+
+Public release of the project under the **ByteRAG** name (formerly DBX). Workspace version reset to `0.1.0` for the ByteRAG lineage.
+
+### Changed
+- **Rebrand** — Product, repository, and documentation identity updated from DBX to ByteRAG.
+- **Crate naming** — Workspace members published/built as `byterag-core`, `byterag-ffi`, `byterag-py`, `byterag-node`, `byterag-csharp`, plus `byterag-tests` / `byterag-benchmarks` / `byterag-examples`.
+- **Docs & site** — GitHub Pages base path and links point at `/ByteRAG/`; bilingual docs remain under `docs/english` and `docs/korean`.
+
+### Note
+Releases **0.0.1-beta through 0.2.2** below were shipped under the previous **DBX** name. Version numbers in that section are historical and are not ordered relative to ByteRAG `0.1.0`.
+
+---
+
+## Previous releases (DBX lineage)
 
 ## [0.2.2] - 2026-04-13
 
@@ -174,8 +210,8 @@ Achieved **1st place in all major operations** (INSERT, GET, SCAN) through algor
 
 #### Benchmark Results (10,000 records, Default features)
 
-| Operation | DBX | SQLite | Sled | Redb | Rank |
-|-----------|-----|--------|------|------|------|
+| Operation | ByteRAG (then DBX) | SQLite | Sled | Redb | Rank |
+|-----------|--------------------|--------|------|------|------|
 | **INSERT** | **44.92ms** 🥇 | 53.06ms | 60.56ms | 54.05ms | **1st** |
 | **GET** | **2.84ms** 🥇 | 37.39ms | 5.88ms | 3.25ms | **1st** |
 | **SCAN** | **1.60ms** 🥇 | 2.98ms | 4.64ms | 2.15ms | **1st** |

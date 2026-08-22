@@ -3,13 +3,13 @@ layout: default
 title: DB Configuration
 parent: English
 nav_order: 35
-description: "DbConfig, DirtyBufferMode, ParallelismConfig, DurabilityLevel, EncryptionConfig — complete DBX configuration reference"
+description: "DbConfig, DirtyBufferMode, ParallelismConfig, DurabilityLevel, EncryptionConfig — complete ByteRAG configuration reference"
 ---
 
 # DB Configuration Guide
 {: .no_toc }
 
-Source-code-level reference for all DBX configuration options. Covers both `Database::open()` and `Database::open_with_config()`.
+Source-code-level reference for all ByteRAG configuration options. Covers both `Database::open()` and `Database::open_with_config()`.
 {: .fs-6 .fw-300 }
 
 ## Table of Contents
@@ -410,4 +410,5 @@ let db = Database::open_in_memory()?;
 - [Encryption Guide](encryption) — EncryptionConfig deep dive
 - [WAL Recovery Guide](wal-recovery) — How WAL works
 - [Storage Layers](storage-layers) — 5-Tier architecture
+
 

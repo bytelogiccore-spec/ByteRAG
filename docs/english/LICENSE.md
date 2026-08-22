@@ -30,11 +30,11 @@ SOFTWARE.
 
 ---
 
-## 💝 Support DBX Development
+## 💝 Support ByteRAG Development
 
-DBX is a **free and open-source** high-performance pure Rust SQL engine for everyone.
+ByteRAG is a **free and open-source** high-performance pure Rust SQL engine for everyone.
 
-If your organization benefits from DBX, please consider sponsoring ongoing development:
+If your organization benefits from ByteRAG, please consider sponsoring ongoing development:
 
 ### For Enterprises & Large Organizations
 - **GitHub Sponsors**: [Coming Soon]
@@ -53,4 +53,5 @@ If your organization benefits from DBX, please consider sponsoring ongoing devel
 
 ## 📦 Third-Party Dependencies
 
-DBX uses several open-source libraries. For the full list of dependencies and their licenses, see the [THIRD_PARTY_LICENSES](https://github.com/bytelogiccore-spec/DBX/blob/main/legal/english/THIRD_PARTY_LICENSES.md) page on GitHub.
+ByteRAG uses several open-source libraries. For the full list of dependencies and their licenses, see the [THIRD_PARTY_LICENSES](https://github.com/bytelogiccore-spec/ByteRAG/blob/main/docs/english/third-party-licenses.md) page on GitHub.
+

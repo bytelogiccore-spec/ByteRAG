@@ -360,7 +360,7 @@ if (byterag_insert(db, "users", key, key_len, value, value_len) != 0) {
 ## 완전한 예제
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -425,4 +425,5 @@ int main() {
 - [C++ API](cpp-api) - C++ 래퍼 사용
 - [SQL 가이드](sql-guide) - SQL 사용법
 - [실전 예제](examples) - 더 많은 예제
+
 

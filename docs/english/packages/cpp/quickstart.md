@@ -9,12 +9,12 @@ nav_order: 2
 
 # Quick Start
 
-Get started with DBX in 5 minutes!
+Get started with ByteRAG in 5 minutes!
 
 ## C Example
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -50,12 +50,12 @@ int main() {
 ## C++ Example
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 
 int main() {
     // RAII wrapper
-    auto db = dbx::Database::openInMemory();
+    auto db = ByteRAG::Database::openInMemory();
     
     // KV operations
     db.insert("users", "user:1", "Alice");
@@ -93,4 +93,5 @@ Set up project properties and build.
 - [Installation](installation) - Detailed setup guide
 - [C API](c-api) - C function reference
 - [C++ API](cpp-api) - C++ class reference
+
 

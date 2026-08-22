@@ -27,7 +27,7 @@ Unlike standard Views, which reference the base tables every time a query is exe
 ### Key Features
 - **Query Performance Boost**: Returns the results of complex queries involving JOINs or aggregations instantly.
 - **Auto-Refresh**: Automatically updates the results in the background every set number of seconds.
-- **Transparent Caching**: When you execute a `SELECT` query, the DBX engine automatically uses the cache if a corresponding materialized view exists and is fresh.
+- **Transparent Caching**: When you execute a `SELECT` query, the ByteRAG engine automatically uses the cache if a corresponding materialized view exists and is fresh.
 
 ---
 
@@ -64,10 +64,10 @@ fn main() -> byterag_core::ByteRagResult<()> {
 
 ## Using Materialized Views
 
-Once a materialized view is created, the DBX engine check the cache internally when executing the same SQL query.
+Once a materialized view is created, the ByteRAG engine check the cache internally when executing the same SQL query.
 
 ```rust
-// When you execute a regular SELECT statement, DBX returns the cached result if available.
+// When you execute a regular SELECT statement, ByteRAG returns the cached result if available.
 let results = db.execute_sql("SELECT category, SUM(price) FROM orders GROUP BY category")?;
 ```
 
@@ -107,4 +107,5 @@ DROP MATERIALIZED VIEW sales_summary
 - [SQL Reference](sql-reference) — Check supported SQL syntax
 - [Streaming Ingestion](streaming-ingestion) — Build real-time data pipelines
 - [Storage Layers](storage-layers) — Understand the 5-tier architecture
+
 

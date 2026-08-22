@@ -4,15 +4,47 @@ title: Changelog
 nav_order: 8
 parent: English
 ---
-
 # Changelog
 
-All notable changes to DBX will be documented here.
+All notable changes to **ByteRAG** are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+This document follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
+and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+
+## [0.3.0] - 2026-08-23
+
+Durable storage lifecycle: synchronous WAL trim on `flush`, portable `.brdb` packs, and unified package versioning.
+
+### Added
+- **`export_to_file` / `open_from_file`** — Portable `.brdb` packs (v1 whole-blob; v2 TOC + seekable zstd frames via `export_to_file_version`).
+- **`WriteAheadLog::checkpoint_and_truncate`** — Checkpoint marker + rewrite under the WAL file mutex.
+
+### Changed
+- **`flush()`** — After Delta → WOS, synchronously checkpoints and truncates global `wal.log` (no idle-based trim; callers must call `flush()`).
+- **Version unification** — Workspace and language bindings aligned to **0.3.0**.
+
+### Performance notes
+- Insert hot path unchanged in design; `flush` / export may be heavier because WAL rewrite and pack I/O run synchronously.
+
+---
+
+## [0.1.0] - 2026-08-22
+
+Public release of the project under the **ByteRAG** name (formerly DBX). Workspace version reset to `0.1.0` for the ByteRAG lineage.
+
+### Changed
+- **Rebrand** — Product, repository, and documentation identity updated from DBX to ByteRAG.
+- **Crate naming** — Workspace members published/built as `byterag-core`, `byterag-ffi`, `byterag-py`, `byterag-node`, `byterag-csharp`, plus `byterag-tests` / `byterag-benchmarks` / `byterag-examples`.
+- **Docs & site** — GitHub Pages base path and links point at `/ByteRAG/`; bilingual docs remain under `docs/english` and `docs/korean`.
+
+### Note
+Releases **0.0.1-beta through 0.2.2** below were shipped under the previous **DBX** name. Version numbers in that section are historical and are not ordered relative to ByteRAG `0.1.0`.
+
+---
+
+## Previous releases (DBX lineage)
 
 ## [0.2.2] - 2026-04-13
 
@@ -82,83 +114,197 @@ Phase 1 & Ecosystem Compatibility Update: Atomic CAS Operations, Row-level Strip
 
 ## [0.1.1-beta] - 2026-03-19
 
-WAL sequential append, multi-core parallelization, Multi-Master Failover, cross-node sharding enhancements, distributed transactions, and Phase 3 partitioning synergy.
+WAL sequential append, multi-core parallelization, Multi-Master Failover, cross-node sharding, distributed transactions, and Phase 3 partitioning synergy (auto-stats, differential compression, fully automatic lifecycle scheduler, Hot/Cold tiering).
 
 ### New Features
 
 #### 📊 Partitioning Synergy (Phase 3)
 
-- **INSERT auto-increments row_count** — Every INSERT into a partitioned table automatically increments `row_count` for the target partition. No manual call needed
-- **`update_partition_stats(table, partition, stats)`** — Manual precision stats for the query optimizer (min/max/null/distinct)
-- **`get_partition_stats` / `all_partition_stats`** — Per-partition statistics queries
-- **`set_partition_compression(table, partition, config)`** — Per-partition independent compression level (ZSTD 1–9)
-- **`get_partition_compression`** — Query current setting (returns Snappy default if unset)
-- **`enable_auto_archive(table, lifecycle)`** — Single call activates full automation
-  - Immediately spawns `dbx-lifecycle-scheduler` background thread (1-hour interval)
-  - Only one thread regardless of how many tables are registered (CAS `compare_exchange` guarantee)
-  - `archive_after_days` elapsed → ZSTD level 9 + Cold tier auto-applied
-  - `delete_after_days` elapsed → partition metadata auto-deleted
-- **`run_partition_lifecycle(table)`** — On-demand immediate execution, returns `(archived, deleted)`
-- **`run_all_partition_lifecycles()`** — Batch immediate execution for all registered tables
-- **`get_partition_creation_time(partition)`** — Auto-recorded first-write timestamp (set on INSERT)
-- **`partition_needs_archive` / `partition_needs_delete`** — Manual condition checks
-- **`set_partition_tier(table, partition, hint)`** — Set `Hot` / `Warm` / `Cold` tier hint
-- **`get_partition_tier`** — Query current tier (returns `Hot` default if unset)
-- **`list_partitions_by_tier(table, hint)`** — List partitions of a given tier
+- **INSERT auto-increments `row_count`** — per-partition `PartitionStats.row_count` updated automatically on every insert
+- **`set_partition_compression`** — per-partition ZSTD level (1–9), independent of global compression
+- **`enable_auto_archive(table, lifecycle)`** — single call spawns a background `dbx-lifecycle-scheduler` thread (1-hour interval, CAS-guaranteed single instance)
+  - `archive_after_days` → ZSTD level 9 + Cold tier hint auto-applied
+  - `delete_after_days` → metadata auto-deleted
+- **`run_partition_lifecycle` / `run_all_partition_lifecycles`** — on-demand immediate execution
+- **`set_partition_tier` / `get_partition_tier` / `list_partitions_by_tier`** — Hot / Warm / Cold tiering API
 
 #### 📦 WAL / Parallelization
 
-- **WAL sequential append** — Sequential appends to WAL file instead of full rewrite on WOS flush. `compact()` triggered only when `wal_entries >= WAL_COMPACT_THRESHOLD`
-- **`ParallelismConfig` / `DbConfig`** — Control CPU core usage ratio (`cpu_cap`) and parallelization threshold (`min_rows_for_parallel`)
-- **`DirtyBufferMode`** — Runtime-selectable data structure for WOS `dirty` buffer: `BTreeMap` (default, range query optimal) or `DashMap` (concurrent optimal). Freely switchable between restarts
-- **`Database::open_with_config()`** — New constructor accepting `DbConfig`. Provides `conservative()` / `aggressive()` presets
-- **`Compactor::bypass_flush_tables()`** — New API to bypass_flush multiple tables simultaneously
+- **WAL sequential append** — sequential `.wal` appends; `compact()` only on `wal_entries >= 5,000`
+- **`DirtyBufferMode`** — runtime-select `BTreeMap` (default) or `DashMap` for WOS dirty buffer
+- **`Database::open_with_config()`** — `DbConfig` constructor with `conservative()` / `aggressive()` presets
+- **Parallel improvements** — `par_iter()` for insert_batch, GROUP BY, JOIN, scan, compact, WAL encode
 
 #### 🔄 Multi-Master Failover
 
-- **Quorum-based leader election** — Stable master election via `term` numbers and majority vote counting (Raft-like). Lower-term masters auto-demoted to Slave to prevent Split-Brain (`replication/node.rs`, `replication/protocol.rs`)
-- **Vector Clock** — Causality-based conflict detection replacing LWW. `HappensBefore` / `Concurrent` determination for lossless conflict resolution (`replication/vector_clock.rs`)
+- **Quorum-based leader election** — Raft-like `term` + majority vote; Split-Brain prevention via auto-demotion
+- **Vector Clock** — causality-based conflict detection replacing LWW
 
-#### 🗂️ Cross-Node Sharding Enhancements
+#### 🗂️ Cross-Node Sharding
 
-- **Weight-based vnode distribution** — `ShardNode::weight` field for non-uniform data allocation per node (`sharding/node_ring.rs`, `sharding/router.rs`)
-- **Data rebalancing** — Automatic key migration for affected hash ranges when adding/removing nodes. `compute_tasks()` + `execute()` pattern (`sharding/rebalancer.rs`)
-- **2PC distributed transactions** — Two-phase commit (Prepare → Commit/Abort) for cross-node atomicity. Full rollback if any participant fails (`sharding/two_phase.rs`)
+- **Weight-based vnode distribution** — `ShardNode::weight` for non-uniform allocation
+- **Data rebalancing** — automatic key migration on node add/remove
+- **2PC distributed transactions** — Prepare → Commit/Abort atomicity across shards
 
-#### 🌐 QUIC-based Transport Layer
+#### 🌐 QUIC Transport
 
-- **s2n-quic QuicTransport** — Real inter-process communication using AWS `s2n-quic` (v1.76). Built-in TLS 1.3, Head-of-Line Blocking-free multi-stream (`replication/transport.rs`)
-- **Runtime transport config** — Switch between single-process ↔ distributed without code changes via `ReplicationConfig::in_memory()` / `ReplicationConfig::quic(...)`
-- **QuicNode server/client mode** — Async `QuicNode::server()` / `QuicNode::client()` initialization with bincode serialization, 4-byte length-prefix framing, and self-signed certificate helper
-
-### Performance Improvements
-
-| Item | Detail | File |
-|------|---------|------|
-| P1 | `insert_batch()` — parallel insertion via `par_iter()` for 1,000+ rows | `crud.rs` |
-| P2 | `get_batches()` projection — parallel column selection via `par_iter()` | `columnar_cache.rs` |
-| P3 | GROUP BY aggregation — parallel aggregation via `par_iter()` for 1,000+ groups | `hash_aggregate.rs` |
-| P4 | JOIN build/probe — `into_par_iter()` (1,000-row threshold) | `join.rs` |
-| P5 | `scan()` — concurrent Delta+WOS scan via `rayon::join()` | `crud.rs` |
-| P6 | `compact()` — page deserialization parallelized via `par_iter()` | `table_store.rs` |
-| P7 | SIMD — switched to `wide` crate stable (nightly removed, always active) | `simd.rs` |
-| P8 | WAL encode — serialization via `par_iter()`, file writes sequential | `table_store.rs` |
-| P9 | Compaction — batch `Arc::clone` collected in parallel via `par_iter()` | `compaction.rs` |
+- **s2n-quic QuicTransport** — TLS 1.3, HoL-blocking-free multi-stream inter-process replication
+- **Runtime config** — `ReplicationConfig::in_memory()` / `ReplicationConfig::quic(...)` switch without code changes
 
 ### Internal Changes
 
-- `Database` struct: added `partition_stats`, `partition_compression`, `partition_lifecycle`, `partition_tier_hints`, `partition_creation_times`, `lifecycle_stop_flag`, `lifecycle_running` fields
-- `crud.rs` `insert()`: added partition auto-stats/timestamp hook (zero overhead for non-partitioned tables)
+- `Database` struct: 7 new fields for partition management (`partition_stats`, `partition_compression`, `partition_lifecycle`, `partition_tier_hints`, `partition_creation_times`, `lifecycle_stop_flag`, `lifecycle_running`)
+- `crud.rs` `insert()`: partition auto-stats/timestamp hook (zero overhead for non-partitioned tables)
 
 ### Dependencies Added
 
-- `wide = "0.7"` — stable SIMD abstraction crate
-- `s2n-quic = "1"` — AWS QUIC implementation (inter-process replication)
-- `tokio` — added `net`, `io-util` features
+- `wide = "0.7"` — stable SIMD
+- `s2n-quic = "1"` — AWS QUIC
+- `tokio` — `net`, `io-util` features
 
-### Tests
+---
 
-23 new integration tests added (all passing). Existing regression: 78 integration, 509 unit tests — no regressions.
+## [0.0.6-beta] - 2026-02-17
+
+### Added
+
+**DDL API**:
+- `drop_table(table_name)` - Drop an existing table
+- `table_exists(table_name)` - Check if a table exists
+- `list_tables()` - List all tables in the database
+
+**Multi-Language Support**:
+
+All DDL APIs are now available in C/C++, C#, Node.js, and Python:
+
+```csharp
+// C#
+db.DropTable("users");
+bool exists = db.TableExists("users");
+var tables = db.ListTables();
+```
+
+```javascript
+// Node.js
+db.dropTable('users');
+const exists = db.tableExists('users');
+const tables = db.listTables();
+```
+
+```python
+# Python
+db.drop_table('users')
+exists = db.table_exists('users')
+tables = db.list_tables()
+```
+
+**FFI Architecture**:
+- **byterag-ffi**: C/C++ FFI layer
+- **byterag-csharp**: C# native bindings (csbindgen)
+- **byterag-node**: Node.js native bindings (N-API)
+- **byterag-py**: Python native bindings (PyO3)
+
+### Changed
+
+**GitHub Actions**:
+- Updated CI to build all FFI layers (byterag-ffi, byterag-csharp, byterag-node, byterag-py)
+- Updated publish workflows to use native bindings instead of shared FFI
+
+### Performance Improvements
+
+Achieved **1st place in all major operations** (INSERT, GET, SCAN) through algorithmic optimizations.
+
+#### Benchmark Results (10,000 records, Default features)
+
+| Operation | ByteRAG (then DBX) | SQLite | Sled | Redb | Rank |
+|-----------|--------------------|--------|------|------|------|
+| **INSERT** | **44.92ms** 🥇 | 53.06ms | 60.56ms | 54.05ms | **1st** |
+| **GET** | **2.84ms** 🥇 | 37.39ms | 5.88ms | 3.25ms | **1st** |
+| **SCAN** | **1.60ms** 🥇 | 2.98ms | 4.64ms | 2.15ms | **1st** |
+
+#### Performance vs Competitors
+
+**vs SQLite**:
+- INSERT: 18% faster
+- GET: 1,217% faster (13x)
+- SCAN: 86% faster
+
+**vs Redb**:
+- INSERT: 20% faster
+- GET: 14% faster
+- SCAN: 34% faster
+
+**vs Sled**:
+- INSERT: 35% faster
+- GET: 107% faster (2x)
+- SCAN: 190% faster (2.9x)
+
+#### Optimization Details
+
+1. **Phase 1: GET Optimization (+70% improvement)**
+   - Added `#[inline(always)]` attribute to hot path functions
+   - Removed MVCC overhead for maximum performance
+   - Simplified code path (removed unnecessary conditionals)
+   - Result: 9.63ms → 2.84ms (3.4x faster)
+
+2. **Phase 2: SCAN Optimization (+57% improvement)**
+   - Implemented fast-path for empty Delta Store
+   - Skip 2-way merge when Delta is empty
+   - Direct WOS scan for better cache locality
+   - Result: 3.70ms → 1.60ms (2.3x faster)
+
+### Technical Details
+
+#### Test Configuration
+- **Platform**: Windows 11 Pro (Build 26200), x64
+- **Compiler**: rustc 1.92.0 (release profile)
+- **Framework**: Criterion.rs v0.5 (100 samples, 95% CI)
+- **Features**: Default (wal, mvcc, index enabled)
+- **Durability**: None (fair comparison)
+
+#### Architecture
+- **Delta Store**: DashMap + SkipMap (lock-free)
+- **WOS**: BTreeMap (sorted storage)
+- **MVCC**: Disabled in hot path for performance
+
+### Changed
+- Optimized `Database::get()` with inline attribute and simplified logic
+- Optimized `Database::scan()` with Delta empty check fast-path
+- Optimized `DeltaStore::scan()` with early return for empty tables
+
+---
+
+## [0.0.5-beta] - 2026-02-16
+
+Full API synchronization across all language bindings. ● = existing, 🆕 = added in this release.
+
+### Binding API Matrix
+
+| API | Node.js | Python | FFI/C | C# | C++ |
+|-----|:-------:|:------:|:-----:|:--:|:---:|
+| `open` / `open_in_memory` | ● | ● | ● | ● | ● |
+| `insert` / `get` / `delete` | ● | ● | ● | ● | ● |
+| `count` | 🆕 | 🆕 | ● | 🆕 | ● |
+| `flush` | 🆕 | 🆕 | ● | 🆕 | ● |
+| `insert_batch` | ● | 🆕 | 🆕 | 🆕 | 🆕 |
+| `scan` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `range` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `table_names` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `gc` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `is_encrypted` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `execute_sql` | ● | 🆕 | 🆕 | 🆕 | 🆕 |
+| `create_index` / `drop_index` / `has_index` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `save_to_file` / `load_from_file` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `insert_versioned` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `get_snapshot` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| `current_timestamp` / `allocate_commit_ts` | 🆕 | 🆕 | 🆕 | 🆕 | 🆕 |
+| Transaction (`begin` / `commit` / `rollback`) | ● | ● | ● | ● | 🆕 |
+
+> **FFI Note**: Collection returns use opaque handle pattern (`DbxScanResult`, `DbxStringList`) with accessor + free functions.
+
+### Fixed
+
+- Fixed `clippy::manual-c-str-literals` warning in `byterag-ffi` (`b"No error\0"` → `c"No error"`)
 
 ---
 
@@ -215,74 +361,39 @@ First feature release. Full query execution pipeline optimization.
 
 ---
 
-## [0.0.3-beta] - 2026-02-15
-
-### Added
-- Comprehensive usage guides for Python, Node.js, and .NET packages
-  - JSON data handling examples
-  - Batch operations and error handling
-  - Real-world examples (KV Store, Session Manager, Cache Wrapper)
-  - TypeScript support for Node.js
-  - ASP.NET Core integration examples
-- Bilingual documentation (English + Korean) for all language bindings
+## [0.0.3-beta] - 2026-02-14
 
 ### Changed
-- **Platform Support**: Corrected to **Windows x64 only** (Linux/macOS planned)
-- **Cargo.toml**: `homepage` now points to GitHub Pages instead of bytelogic.studio
-- **crates.io**: Only `byterag-core` is published (removed `dbx-derive` and `byterag-ffi`)
-- **Documentation**: Removed Derive Macro section (not used in production)
-- **Doc Comments**: Converted Rust doc comments to English for docs.rs consistency
 
-### Fixed
-- Over-claimed platform support (was: all platforms, now: Windows x64 only)
-- Version inconsistencies across packages
+- Restricted crates.io publishing to `byterag-core` only
+- Unified license badges to `MIT OR Commercial`
+- Added per-language API guides (Python, Node.js, .NET)
+- Added API reference section to GitHub Pages
 
 ---
 
-## [0.0.2-beta] - 2026-02-15
-
-### Added
-- Package documentation for all language bindings (Rust, .NET, Python, Node.js, C/C++)
-- GitHub Pages bilingual docs (English + Korean) for each package
-- CHANGELOG.md
-- NuGet package metadata (version, license, readme)
-- `readme` field in all Rust crate Cargo.toml files
-- `permissions: contents: write` for GitHub Release workflow
+## [0.0.2-beta] - 2026-02-13
 
 ### Changed
-- **CI/CD**: Split monolithic release workflow into independent per-registry workflows
-  - `publish-crates.yml` — crates.io (dbx-derive → byterag-core → byterag-ffi)
-  - `publish-nuget.yml` — NuGet
-  - `publish-pypi.yml` — PyPI
-  - `publish-npm.yml` — npm
-  - `release.yml` — Build + Test + GitHub Release only
-- **Versions**: Unified all packages to `0.0.2-beta`
-- **License**: Simplified to `MIT` for crates.io compatibility
-- **Workspace metadata**: Added `repository`, `homepage`, `documentation` inheritance
-- **crates.io**: Removed `|| true` from publish commands, added `--no-verify`, increased index wait to 60s
 
-### Fixed
-- NuGet 403 error: API key permission guidance
-- PyPI 400 error: Version format corrected to PEP 440 (`0.0.2b0`)
-- npm EOTP error: Granular Access Token guidance for 2FA bypass
-- crates.io circular dependency: Removed `version` from `dbx-derive` dev-dependency
-- GitHub Release 403: Added `contents: write` permission
-- `edition = "2024"` preserved for `let chains` syntax support
+- Built bilingual documentation (Korean/English) for Python, Node.js, .NET, C/C++
+- Eliminated all build errors and warnings
+- Removed `dbx-derive` macro crate
+- Switched CI workflows to manual-trigger only
 
 ---
 
 ## [0.0.1-beta] - 2026-02-12
 
-### Added
-- Initial release
-- 5-Tier Hybrid Storage engine (WOS → L0 → L1 → L2 → Cold)
-- MVCC transaction support with snapshot isolation
-- SQL engine (CREATE TABLE, INSERT, SELECT, UPDATE, DELETE)
-- Write-Ahead Logging (WAL) for crash recovery
-- Language bindings: Rust, C#/.NET, Python, Node.js, C/C++
-- Encryption support (AES-GCM-SIV, ChaCha20-Poly1305)
-- Arrow/Parquet native columnar format
-- GitHub Pages documentation site
-- CI/CD pipeline with GitHub Actions
-- Comparison benchmarks vs SQLite, Sled, Redb
+Initial release.
+
+### Features
+
+- SQL parser (SELECT, INSERT, CREATE TABLE, DROP TABLE)
+- Arrow RecordBatch-based columnar storage
+- MVCC transactions (Snapshot Isolation)
+- Write-Ahead Logging (WAL)
+- B-Tree indexing
+- Language bindings: Python, Node.js, C#, C/C++
+
 

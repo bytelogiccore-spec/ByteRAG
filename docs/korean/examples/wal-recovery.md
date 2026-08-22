@@ -7,7 +7,7 @@ nav_order: 16
 
 # WAL Recovery Quick Start
 
-DBX에서 WAL 복구를 사용하는 가장 빠른 방법입니다.
+ByteRAG에서 WAL 복구를 사용하는 가장 빠른 방법입니다.
 
 ## 1. WAL 활성화
 
@@ -98,4 +98,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**WAL Recovery Guide**](../guides/wal-recovery.md) — 완전한 WAL 가이드
 - [**Transactions**](../guides/transactions.md) — ACID 트랜잭션
 - [**Quick Start**](quick-start.md) — 기본 CRUD
+
 

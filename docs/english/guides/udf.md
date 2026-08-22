@@ -15,7 +15,7 @@ Run custom business logic directly inside SQL queries.
 
 ## Overview
 
-DBX's UDF framework supports three types of user-defined functions:
+ByteRAG's UDF framework supports three types of user-defined functions:
 
 | Type | Description | Example |
 |------|-------------|---------|
@@ -107,4 +107,5 @@ let generate_series = TableUdf::new(
 
 - [Triggers Guide](triggers) — Auto-execute logic on data changes
 - [SQL Reference](sql-reference) — Using UDFs in SQL
+
 

@@ -3,13 +3,13 @@ layout: default
 title: 초보자 튜토리얼
 parent: 한국어
 nav_order: 30
-description: "DBX 초보자를 위한 단계별 가이드"
+description: "ByteRAG 초보자를 위한 단계별 가이드"
 ---
 
 # 초보자 튜토리얼 (Beginner Tutorial)
 {: .no_toc }
 
-DBX를 처음 시작하는 분들을 위한 단계별 가이드입니다.
+ByteRAG를 처음 시작하는 분들을 위한 단계별 가이드입니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,10 +22,10 @@ DBX를 처음 시작하는 분들을 위한 단계별 가이드입니다.
 
 ## 소개
 
-이 튜토리얼에서는 첫 번째 DBX 데이터베이스를 생성하고, 기본적인 작업을 수행하며, 간단한 SQL 쿼리를 실행하는 방법을 배웁니다.
+이 튜토리얼에서는 첫 번째 ByteRAG 데이터베이스를 생성하고, 기본적인 작업을 수행하며, 간단한 SQL 쿼리를 실행하는 방법을 배웁니다.
 
 **학습 내용:**
-- DBX 설치 및 프로젝트 설정
+- ByteRAG 설치 및 프로젝트 설정
 - 데이터베이스 생성
 - 데이터 삽입 및 조회
 - 트랜잭션 사용법
@@ -126,10 +126,12 @@ for batch in results {
 
 ## 다음 단계
 
-축하합니다! DBX의 기본을 배우셨습니다. 다음 가이드를 통해 더 깊이 있게 학습해 보세요.
+축하합니다! ByteRAG의 기본을 배우셨습니다. 다음 가이드를 통해 더 깊이 있게 학습해 보세요.
 
 - [CRUD 작업 가이드](../guides/crud-operations) — 상세 CRUD 활용법
 - [트랜잭션 가이드](../guides/transactions) — MVCC 트랜잭션 마스터하기
 - [SQL 레퍼런스](../guides/sql-reference) — 다양한 SQL 구문 학습
 - [저장소 계층](../guides/storage-layers) — 내부 아키텍처 이해하기
+
+
 

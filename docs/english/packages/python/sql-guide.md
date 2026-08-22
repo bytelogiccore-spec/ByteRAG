@@ -9,7 +9,7 @@ nav_order: 3
 
 # SQL Guide
 
-DBX supports standard SQL. You can use it via the `execute_sql` method in Python.
+ByteRAG supports standard SQL. You can use it via the `execute_sql` method in Python.
 
 ## CREATE TABLE
 
@@ -192,4 +192,5 @@ tx.commit()
 - [KV Operations](kv-operations) - Key-Value operations
 - [Advanced](advanced) - Transactions, performance
 - [API Reference](api-reference) - Complete API
+
 

@@ -26,7 +26,7 @@ Install-Package DBX.Dotnet
 ### PackageReference
 
 ```xml
-<PackageReference Include="DBX.Dotnet" Version="{{ site.dbx_dotnet_version }}" />
+<PackageReference Include="DBX.Dotnet" Version="{{ site.byterag_dotnet_version }}" />
 ```
 
 ## 요구사항
@@ -61,7 +61,7 @@ Console.WriteLine("DBX.Dotnet loaded successfully!");
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DBX.Dotnet" Version="{{ site.dbx_dotnet_version }}" />
+    <PackageReference Include="DBX.Dotnet" Version="{{ site.byterag_dotnet_version }}" />
   </ItemGroup>
 </Project>
 ```
@@ -76,7 +76,7 @@ Console.WriteLine("DBX.Dotnet loaded successfully!");
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DBX.Dotnet" Version="{{ site.dbx_dotnet_version }}" />
+    <PackageReference Include="DBX.Dotnet" Version="{{ site.byterag_dotnet_version }}" />
   </ItemGroup>
 </Project>
 ```
@@ -110,5 +110,6 @@ Console.WriteLine("DBX.Dotnet loaded successfully!");
 dotnet add package DBX.Dotnet --prerelease
 
 # 특정 버전
-dotnet add package DBX.Dotnet --version {{ site.dbx_dotnet_version }}
+dotnet add package DBX.Dotnet --version {{ site.byterag_dotnet_version }}
 ```
+

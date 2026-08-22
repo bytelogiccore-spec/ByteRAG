@@ -18,8 +18,8 @@ pip install byterag-py
 ## 소스에서 빌드
 
 ```bash
-git clone https://github.com/bytelogiccore-spec/DBX.git
-cd DBX/lang/python
+git clone https://github.com/bytelogiccore-spec/ByteRAG.git
+cd ByteRAG/lang/python
 pip install maturin
 maturin develop --release
 ```
@@ -83,4 +83,5 @@ pip install byterag-py --pre
 # 특정 버전
 pip install byterag-py=={{ site.byterag_py_version }}
 ```
+
 

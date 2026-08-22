@@ -21,7 +21,7 @@ nav_order: 4
 
 ## 개요
 
-DBX는 순수 Rust로 작성된 고성능 코어 엔진을 제공하며, 다양한 언어에서 사용할 수 있도록 FFI(Foreign Function Interface) 바인딩을 제공합니다.
+ByteRAG는 순수 Rust로 작성된 고성능 코어 엔진을 제공하며, 다양한 언어에서 사용할 수 있도록 FFI(Foreign Function Interface) 바인딩을 제공합니다.
 
 이 문서는 각 언어 바인딩의 **FFI 오버헤드**를 측정하여 Rust Core 대비 성능 차이를 정량화합니다.
 
@@ -257,4 +257,5 @@ cmake --build build --target byterag_ffi_benchmark
 - [Node.js 가이드](packages/nodejs) — Node.js 바인딩 사용법
 - [.NET 가이드](packages/dotnet) — .NET 바인딩 사용법
 - [C++ 가이드](packages/cpp) — C++ 바인딩 사용법
+
 

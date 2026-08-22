@@ -15,7 +15,7 @@ nav_order: 30
 
 ## 개요
 
-DBX의 UDF 프레임워크는 세 가지 유형의 사용자 정의 함수를 지원합니다:
+ByteRAG의 UDF 프레임워크는 세 가지 유형의 사용자 정의 함수를 지원합니다:
 
 | 유형 | 설명 | 예시 |
 |------|------|------|
@@ -121,4 +121,5 @@ let generate_series = TableUdf::new(
 
 - [트리거 가이드](triggers) — 데이터 변경 시 자동 실행되는 로직
 - [SQL 레퍼런스](sql-reference) — UDF를 SQL에서 활용하는 방법
+
 

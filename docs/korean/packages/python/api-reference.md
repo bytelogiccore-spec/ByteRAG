@@ -211,7 +211,7 @@ except:
 
 ### `ByteRagError`
 
-DBX 관련 모든 예외의 기본 클래스.
+ByteRAG 관련 모든 예외의 기본 클래스.
 
 **예제:**
 ```python
@@ -270,4 +270,5 @@ print(byterag_py.__version__)  # {{ site.byterag_py_version }}
 - [SQL 가이드](sql-guide) - SQL 사용법
 - [KV 작업](kv-operations) - Key-Value 작업
 - [실전 예제](examples) - 실무 활용 예제
+
 

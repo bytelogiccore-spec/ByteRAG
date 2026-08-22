@@ -9,7 +9,7 @@ nav_order: 4
 
 # SQL 가이드
 
-DBX는 표준 SQL을 지원합니다. DDL과 DML 모두 사용 가능합니다.
+ByteRAG는 표준 SQL을 지원합니다. DDL과 DML 모두 사용 가능합니다.
 
 ## 테이블 생성 (CREATE TABLE)
 
@@ -392,4 +392,5 @@ result = db.execute_sql("SELECT * FROM users WHERE email = 'alice@example.com'")
 - [고급 기능](advanced) - 트랜잭션, 암호화
 - [API 레퍼런스](api-reference) - 전체 API 문서
 - [실전 예제](examples) - 더 많은 예제
+
 

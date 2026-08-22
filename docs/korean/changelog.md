@@ -7,12 +7,29 @@ parent: 한국어
 
 # 변경 이력 (Changelog)
 
-DBX의 주요 변경사항을 기록합니다.
+ByteRAG의 주요 변경사항을 기록합니다.
 
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 형식을 따르며,
 [Semantic Versioning](https://semver.org/lang/ko/) 규칙을 준수합니다.
 
 ---
+
+
+## [0.1.0] - 2026-08-22
+
+프로젝트를 **ByteRAG** 이름으로 공개했습니다(이전 명칭: DBX). ByteRAG 계보를 위해 워크스페이스 버전을 `0.1.0`으로 재설정했습니다.
+
+### 변경 사항
+- **리브랜드** — 제품·저장소·문서 정체성을 DBX에서 ByteRAG로 갱신했습니다.
+- **크레이트 명명** — 워크스페이스 멤버를 `byterag-core`, `byterag-ffi`, `byterag-py`, `byterag-node`, `byterag-csharp` 및 tests/benchmarks/examples로 통일했습니다.
+- **문서·사이트** — GitHub Pages 경로와 링크를 `/ByteRAG/` 기준으로 맞췄습니다.
+
+### 참고
+아래 **0.0.1-beta ~ 0.2.2** 항목은 이전 **DBX** 명칭으로 출시된 이력입니다. 해당 구간 버전 번호는 역사적 기록이며 ByteRAG `0.1.0`과 순서상 연속되지 않습니다.
+
+---
+
+## 이전 릴리스 (DBX 계보)
 
 ## [0.2.2] - 2026-04-13
 
@@ -329,4 +346,8 @@ WAL 구현, 멀티코어 병렬화, Multi-Master Failover, 크로스-노드 샤�
 - GitHub Pages 문서 사이트
 - GitHub Actions CI/CD 파이프라인
 - SQLite, Sled, Redb 비교 벤치마크
+
+
+
+
 

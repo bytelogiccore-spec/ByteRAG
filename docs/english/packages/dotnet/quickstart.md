@@ -9,7 +9,7 @@ nav_order: 2
 
 # Quick Start
 
-Get started with DBX in 5 minutes!
+Get started with ByteRAG in 5 minutes!
 
 ## Installation
 
@@ -53,3 +53,4 @@ using (var db = Database.Open("mydb.db"))
 - [SQL Guide](sql-guide) - SQL usage
 - [KV Operations](kv-operations) - Key-Value operations
 - [API Reference](api-reference) - Complete API
+

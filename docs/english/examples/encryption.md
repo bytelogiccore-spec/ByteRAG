@@ -7,7 +7,7 @@ nav_order: 13
 
 # Encryption Quick Start
 
-The fastest way to use encryption in DBX.
+The fastest way to use encryption in ByteRAG.
 
 ## 1. Creating an Encrypted Database
 
@@ -90,4 +90,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**Encryption Guide**](../guides/encryption.md) — Complete encryption guide
 - [**Compression**](compression.md) — Data compression
 - [**Quick Start**](quick-start.md) — Basic CRUD
+
 

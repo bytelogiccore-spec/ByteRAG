@@ -7,7 +7,7 @@ nav_order: 23
 
 # Multi-Master Failover
 
-DBX automatically elects a new master node when the current master fails, ensuring high availability through quorum-based leader election.
+ByteRAG automatically elects a new master node when the current master fails, ensuring high availability through quorum-based leader election.
 
 ---
 
@@ -15,7 +15,7 @@ DBX automatically elects a new master node when the current master fails, ensuri
 
 ```
 ┌───────────────────────────────────────┐
-│           DBX Cluster                 │
+│           ByteRAG Cluster                 │
 │  ┌─────────┐  ┌─────────┐  ┌───────┐ │
 │  │ Master  │  │ Slave 1 │  │Slave 2│ │
 │  │ (term=3)│  │(Follower│  │       │ │
@@ -80,7 +80,7 @@ let config = DbConfig {
 
 ## Vector Clock Conflict Resolution
 
-Instead of simple LWW (Last Write Wins), DBX uses **vector clocks** to precisely detect concurrent events.
+Instead of simple LWW (Last Write Wins), ByteRAG uses **vector clocks** to precisely detect concurrent events.
 
 ```rust
 use byterag_core::replication::VectorClock;
@@ -113,4 +113,5 @@ assert!(vc_a.happens_before(&vc_b));
 | `replication/node.rs` | Quorum election, heartbeat, term management |
 | `replication/protocol.rs` | VoteRequest, VoteResponse, Promotion messages |
 | `replication/vector_clock.rs` | Vector clock implementation |
+
 

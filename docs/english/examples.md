@@ -3,16 +3,16 @@ layout: default
 title: Examples
 nav_order: 10
 parent: English
-description: "Code examples for DBX"
+description: "Code examples for ByteRAG"
 ---
 
 # Examples
 
-Practical code examples demonstrating DBX features.
+Practical code examples demonstrating ByteRAG features.
 
 ## 🚀 Getting Started
 
-Start here if you're new to DBX:
+Start here if you're new to ByteRAG:
 
 - [**Quick Start**](./examples/quick-start.md) - 5분 시작 가이드 (CRUD 기본)
 - [**SQL Quick Start**](./examples/sql-quick-start.md) - SQL 기본 사용법
@@ -93,11 +93,12 @@ Each example includes:
 
 ## 🔗 Related Resources
 
-- [Architecture](../architecture.md) - Understand DBX's 5-Tier Hybrid Storage
+- [Architecture](../architecture.md) - Understand ByteRAG's 5-Tier Hybrid Storage
 - [Benchmarks](../benchmarks.md) - Performance comparisons
 - [API Reference](../api/) - Detailed API documentation
 
 ---
 
-**Need help?** [Open an issue](https://github.com/bytelogiccore-spec/DBX/issues).
+**Need help?** [Open an issue](https://github.com/bytelogiccore-spec/ByteRAG/issues).
+
 

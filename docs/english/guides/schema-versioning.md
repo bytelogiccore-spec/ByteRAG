@@ -15,7 +15,7 @@ Change table schemas with zero downtime and roll back to any previous version.
 
 ## Overview
 
-Altering schemas on a live database is risky. DBX's schema versioning keeps a full change history, ensuring safe DDL operations with rollback capability.
+Altering schemas on a live database is risky. ByteRAG's schema versioning keeps a full change history, ensuring safe DDL operations with rollback capability.
 
 ---
 
@@ -84,4 +84,5 @@ for entry in &history {
 
 - [Indexing Guide](indexing) — Index versioning integration
 - [Transactions Guide](transactions) — DDL and transaction interaction
+
 

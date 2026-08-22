@@ -12,7 +12,7 @@ nav_order: 8
 ## Log Collector (C)
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 #include <time.h>
 
@@ -52,15 +52,15 @@ void log_collector_destroy(LogCollector* collector) {
 ## Game Save System (C++)
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <nlohmann/json.hpp>
 
 class GameSaveSystem {
 private:
-    dbx::Database db;
+    ByteRAG::Database db;
 
 public:
-    GameSaveSystem(const std::string& dbPath) : db(dbx::Database::open(dbPath)) {
+    GameSaveSystem(const std::string& dbPath) : db(ByteRAG::Database::open(dbPath)) {
         db.executeSql(R"(
             CREATE TABLE IF NOT EXISTS saves (
                 slot INTEGER PRIMARY KEY,
@@ -111,4 +111,5 @@ void store_sensor_data(DbxDatabase* db, const SensorData* data) {
 
 - [C API](c-api) - C function reference
 - [C++ API](cpp-api) - C++ class reference
+
 

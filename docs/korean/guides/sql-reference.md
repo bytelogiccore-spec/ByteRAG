@@ -3,13 +3,13 @@ layout: default
 title: SQL 레퍼런스
 parent: 한국어
 nav_order: 21
-description: "DBX를 위한 전체 SQL 구문 레퍼런스"
+description: "ByteRAG를 위한 전체 SQL 구문 레퍼런스"
 ---
 
 # SQL 레퍼런스
 {: .no_toc }
 
-DBX의 SQL 쿼리에 대한 전체 레퍼런스입니다.
+ByteRAG의 SQL 쿼리에 대한 전체 레퍼런스입니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,7 +22,7 @@ DBX의 SQL 쿼리에 대한 전체 레퍼런스입니다.
 
 ## 개요
 
-DBX는 Apache Arrow 및 DataFusion 통합을 통해 표준 SQL 쿼리를 지원합니다. SQL 쿼리는 최적의 분석 성능을 위해 **Columnar Cache(컬럼형 캐시)** 계층에서 작동합니다.
+ByteRAG는 Apache Arrow 및 DataFusion 통합을 통해 표준 SQL 쿼리를 지원합니다. SQL 쿼리는 최적의 분석 성능을 위해 **Columnar Cache(컬럼형 캐시)** 계층에서 작동합니다.
 
 ### 지원 기능
 
@@ -284,7 +284,7 @@ let results = db.execute_sql(
 
 ### Projection Pushdown
 
-DBX는 저장소 계층에서 필요한 컬럼만 읽도록 자동으로 최적화합니다.
+ByteRAG는 저장소 계층에서 필요한 컬럼만 읽도록 자동으로 최적화합니다.
 
 ### Predicate Pushdown
 
@@ -313,4 +313,5 @@ GPU 기능이 활성화된 경우, 특정 작업들이 자동으로 가속화됩
 - [트랜잭션](transactions) — SQL과 트랜잭션 함께 사용하기
 - [GPU 가속](gpu-acceleration) — SQL 쿼리 가속화하기
 - [API 레퍼런스](../api/sql) — 전체 SQL API 문서
+
 

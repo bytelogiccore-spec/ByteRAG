@@ -3,13 +3,13 @@ layout: default
 title: 벤치마크
 nav_order: 3
 parent: 한국어
-description: "DBX 성능 벤치마크"
+description: "ByteRAG 성능 벤치마크"
 ---
 
 # 벤치마크
 {: .no_toc }
 
-DBX와 다른 임베디드 데이터베이스 간의 성능 비교 벤치마크입니다.
+ByteRAG와 다른 임베디드 데이터베이스 간의 성능 비교 벤치마크입니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,11 +22,11 @@ DBX와 다른 임베디드 데이터베이스 간의 성능 비교 벤치마크�
 
 ## 요약 (Executive Summary)
 
-DBX는 순수 Rust로 작성된 고성능 임베디드 데이터베이스 엔진입니다.
+ByteRAG는 순수 Rust로 작성된 고성능 임베디드 데이터베이스 엔진입니다.
 
 ### 최신 벤치마크 결과 (v0.2.0-beta, 10,000개 레코드)
 
-| 작업 | DBX (Fast-Path) | SQLite | Sled | Redb | 순위 |
+| 작업 | ByteRAG (Fast-Path) | SQLite | Sled | Redb | 순위 |
 |------|-----|--------|------|------|------|
 | **SCAN (Count)** | **51µs** 🥇 | 340µs | 4.64ms | 2.08ms | **1위** |
 | **INSERT** | **25.21ms** 🥇 | 29.4ms | 56.6ms | 54.05ms | **1위** |
@@ -34,7 +34,7 @@ DBX는 순수 Rust로 작성된 고성능 임베디드 데이터베이스 엔진
 
 > **SCAN 참고**: v0.2.0에서 도입된 **Fast-Path** 기술을 통해 단일 노드 쿼리 레이턴시를 마이크로초(µs) 단위로 단축했습니다.
 
-> **SCAN 참고**: Redb는 mmap + B-tree 특화 구조로 KV 순회에서 최상위. DBX는 SQL·컬럼형 집계에 특화.
+> **SCAN 참고**: Redb는 mmap + B-tree 특화 구조로 KV 순회에서 최상위. ByteRAG는 SQL·컬럼형 집계에 특화.
 
 ### v0.1.1 병렬화 적용 후 개선폭
 
@@ -43,7 +43,7 @@ DBX는 순수 Rust로 작성된 고성능 임베디드 데이터베이스 엔진
 | `byterag_scan_10k` | **-29.2%** | `rayon::join()` Delta+WOS 병렬 스캔 |
 | `byterag_get_10k` | **-6.8%** | 최적화 누적 효과 |
 
-**버전**: DBX v0.2.0-beta
+**버전**: ByteRAG v0.2.0-beta
 **테스트 날짜**: 2026년 4월 3일
 **보고서 유형**: 공식 성능 비교 분석
 
@@ -76,7 +76,7 @@ DBX는 순수 Rust로 작성된 고성능 임베디드 데이터베이스 엔진
 
 | 데이터베이스 | 버전 | 언어 | 특징 |
 |------------|------|------|------|
-| **DBX** | 0.0.6-beta | Pure Rust | 5-Tier Hybrid Storage, MVCC |
+| **ByteRAG** | 0.0.6-beta | Pure Rust | 5-Tier Hybrid Storage, MVCC |
 | **SQLite** | 0.32 (rusqlite) | C (bundled) | 업계 표준 임베디드 DB |
 | **Sled** | 0.34 | Pure Rust | Lock-free B+ tree |
 | **Redb** | 2.1 | Pure Rust | LMDB 영감, 파일 전용 |
@@ -95,7 +95,7 @@ DBX는 순수 Rust로 작성된 고성능 임베디드 데이터베이스 엔진
 
 ### 공정한 비교 조건
 
-#### DBX 설정
+#### ByteRAG 설정
 
 ```rust
 // Default features 활성화
@@ -109,13 +109,13 @@ durability = DurabilityLevel::None
 
 1. **트랜잭션/배치 모드**
    - 개별 INSERT 대신 배치 커밋을 사용한 공정한 비교
-   - DBX: `begin()` → `insert()` × N → `commit()`
+   - ByteRAG: `begin()` → `insert()` × N → `commit()`
    - SQLite: `unchecked_transaction()` → `execute()` × N → `commit()`
    - Sled: `insert()` × N → `flush()`
    - Redb: `begin_write()` → `insert()` × N → `commit()`
 
 2. **WAL (Write-Ahead Logging) 비활성화**
-   - DBX: `durability = DurabilityLevel::None`
+   - ByteRAG: `durability = DurabilityLevel::None`
    - SQLite: `PRAGMA synchronous = OFF`
    - Sled: 기본 설정 (flush 기반)
    - Redb: 기본 설정 (트랜잭션 기반)
@@ -131,42 +131,42 @@ durability = DurabilityLevel::None
 
 ### INSERT 성능 (10,000개 레코드)
 
-| 데이터베이스 | 평균 시간 | 표준 편차 | 처리량 (rec/sec) | DBX 대비 |
+| 데이터베이스 | 평균 시간 | 표준 편차 | 처리량 (rec/sec) | ByteRAG 대비 |
 |------------|----------|----------|------------------|----------|
-| **DBX** | **44.92ms** | ±0.20ms | **222,619** | **1.0× (기준)** |
+| **ByteRAG** | **44.92ms** | ±0.20ms | **222,619** | **1.0× (기준)** |
 | SQLite | 53.06ms | ±0.38ms | 188,465 | **0.85× (18% 느림)** |
 | Redb | 54.05ms | ±0.72ms | 185,015 | **0.83× (20% 느림)** |
 | Sled | 60.56ms | ±1.55ms | 165,123 | **0.74× (35% 느림)** |
 
-**DBX 우위**:
+**ByteRAG 우위**:
 - ✅ **모든 경쟁사보다 빠름**
 - ✅ SQLite 대비 18% 빠름
 - ✅ 안정적인 성능 (낮은 표준 편차)
 
 ### GET 성능 (10,000개 레코드)
 
-| 데이터베이스 | 평균 시간 | 표준 편차 | 처리량 (rec/sec) | DBX 대비 |
+| 데이터베이스 | 평균 시간 | 표준 편차 | 처리량 (rec/sec) | ByteRAG 대비 |
 |------------|----------|----------|------------------|----------|
-| **DBX** | **2.84ms** | ±0.01ms | **3,521,127** | **1.0× (기준)** |
+| **ByteRAG** | **2.84ms** | ±0.01ms | **3,521,127** | **1.0× (기준)** |
 | Redb | 3.25ms | ±0.17ms | 3,076,923 | **0.87× (14% 느림)** |
 | Sled | 5.88ms | ±0.03ms | 1,700,680 | **0.48× (107% 느림)** |
 | SQLite | 37.39ms | ±0.48ms | 267,452 | **0.08× (1,217% 느림)** |
 
-**DBX 우위**:
+**ByteRAG 우위**:
 - ✅ **SQLite 대비 13배 빠름**
 - ✅ Redb 대비 14% 빠름
 - ✅ Sled 대비 2배 빠름
 
 ### SCAN 성능 (10,000개 레코드)
 
-| 데이터베이스 | 평균 시간 | 표준 편차 | 처리량 (rec/sec) | DBX 대비 |
+| 데이터베이스 | 평균 시간 | 표준 편차 | 처리량 (rec/sec) | ByteRAG 대비 |
 |------------|----------|----------|------------------|----------|
-| **DBX** | **1.60ms** | ±0.07ms | **6,250,000** | **1.0× (기준)** |
+| **ByteRAG** | **1.60ms** | ±0.07ms | **6,250,000** | **1.0× (기준)** |
 | Redb | 2.15ms | ±0.02ms | 4,651,163 | **0.74× (34% 느림)** |
 | SQLite | 2.98ms | ±0.16ms | 3,355,705 | **0.54× (86% 느림)** |
 | Sled | 4.64ms | ±0.10ms | 2,155,172 | **0.34× (190% 느림)** |
 
-**DBX 우위**:
+**ByteRAG 우위**:
 - ✅ **모든 경쟁사보다 빠름**
 - ✅ Redb 대비 34% 빠름
 - ✅ SQLite 대비 86% 빠름
@@ -237,8 +237,8 @@ durability = DurabilityLevel::None
 
 ```bash
 # 프로젝트 클론
-git clone https://github.com/ByteLogicCore/DBX.git
-cd DBX
+git clone https://github.com/bytelogiccore-spec/ByteRAG.git
+cd ByteRAG
 
 # 전체 비교 벤치마크 실행
 cargo bench -p byterag-benchmarks --bench official_db_comparison
@@ -254,7 +254,7 @@ cargo bench -p byterag-benchmarks --bench official_db_comparison -- redb_
 
 ## 결론
 
-DBX v0.0.6-beta는 **모든 주요 작업(INSERT, GET, SCAN)에서 1위를 달성**했습니다.
+ByteRAG v0.0.6-beta는 **모든 주요 작업(INSERT, GET, SCAN)에서 1위를 달성**했습니다.
 
 ### 핵심 성과
 
@@ -269,7 +269,7 @@ DBX v0.0.6-beta는 **모든 주요 작업(INSERT, GET, SCAN)에서 1위를 달�
 3. **Pure Rust**: 메모리 안전성과 제로 비용 추상화
 4. **최적화된 알고리즘**: Fast-path 및 inline 최적화
 
-DBX는 **고성능 쓰기 작업과 균형 잡힌 읽기 성능이 필요한 애플리케이션에 최적의 선택**입니다.
+ByteRAG는 **고성능 쓰기 작업과 균형 잡힌 읽기 성능이 필요한 애플리케이션에 최적의 선택**입니다.
 
 ---
 
@@ -279,4 +279,6 @@ DBX는 **고성능 쓰기 작업과 균형 잡힌 읽기 성능이 필요한 애
 - [시작하기](getting-started) — 직접 사용해보기
 - [GPU 가속](guides/gpu-acceleration) — 분석 쿼리 가속화
 - [예제](examples/quick-start) — 코드 예제 살펴보기
+
+
 

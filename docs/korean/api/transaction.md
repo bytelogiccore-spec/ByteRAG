@@ -8,14 +8,14 @@ parent: 한국어
 # 트랜잭션 API
 {: .no_toc }
 
-DBX의 MVCC 트랜잭션 관리를 위한 API 레퍼런스입니다.
+ByteRAG의 MVCC 트랜잭션 관리를 위한 API 레퍼런스입니다.
 {: .fs-6 .fw-300 }
 
 ---
 
 ## 개요
 
-DBX는 **MVCC (Multi-Version Concurrency Control)**를 기반으로 한 **스냅샷 격리(Snapshot Isolation)** 트랜잭션을 제공합니다. 컴파일 타임 안정성을 위해 **Typestate 패턴**을 사용합니다.
+ByteRAG는 **MVCC (Multi-Version Concurrency Control)**를 기반으로 한 **스냅샷 격리(Snapshot Isolation)** 트랜잭션을 제공합니다. 컴파일 타임 안정성을 위해 **Typestate 패턴**을 사용합니다.
 
 ### 트랜잭션 상태
 - **Active**: 작업 수행 가능 상태
@@ -49,14 +49,14 @@ let tx = db.begin()?;
 # 트랜잭션 API
 {: .no_toc }
 
-DBX의 MVCC 트랜잭션 관리를 위한 API 레퍼런스입니다.
+ByteRAG의 MVCC 트랜잭션 관리를 위한 API 레퍼런스입니다.
 {: .fs-6 .fw-300 }
 
 ---
 
 ## 개요
 
-DBX는 **MVCC (Multi-Version Concurrency Control)**를 기반으로 한 **스냅샷 격리(Snapshot Isolation)** 트랜잭션을 제공합니다. 컴파일 타임 안정성을 위해 **Typestate 패턴**을 사용합니다.
+ByteRAG는 **MVCC (Multi-Version Concurrency Control)**를 기반으로 한 **스냅샷 격리(Snapshot Isolation)** 트랜잭션을 제공합니다. 컴파일 타임 안정성을 위해 **Typestate 패턴**을 사용합니다.
 
 ### 트랜잭션 상태
 - **Active**: 작업 수행 가능 상태
@@ -96,7 +96,7 @@ let tx = db.begin()?;
 
 #### MVCC Dual-Write 전략
 
-DBX는 **MVCC versioned key**와 **일반 key**를 모두 저장하는 dual-write 전략을 사용합니다:
+ByteRAG는 **MVCC versioned key**와 **일반 key**를 모두 저장하는 dual-write 전략을 사용합니다:
 
 1. **insert_versioned()**: MVCC 타임스탬프가 포함된 versioned key로 저장
    - 향후 snapshot isolation, time-travel query 지원
@@ -144,4 +144,5 @@ DBX는 **MVCC versioned key**와 **일반 key**를 모두 저장하는 dual-writ
 - [트랜잭션 가이드](../guides/transactions) — 상세 트랜잭션 패턴 및 예제
 - [데이터베이스 API](database) — 기본 CRUD 작업 API
 - [SQL API](sql) — 트랜잭션 내 SQL 실행 (향후 지원 예정)
+
 

@@ -3,13 +3,13 @@ layout: default
 title: Transactions
 parent: English
 nav_order: 22
-description: "MVCC transactions and concurrency control in DBX"
+description: "MVCC transactions and concurrency control in ByteRAG"
 ---
 
 # Transactions
 {: .no_toc }
 
-Complete guide to MVCC transactions and concurrency control in DBX.
+Complete guide to MVCC transactions and concurrency control in ByteRAG.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -22,7 +22,7 @@ Complete guide to MVCC transactions and concurrency control in DBX.
 
 ## Overview
 
-DBX implements **Multi-Version Concurrency Control (MVCC)** with **Snapshot Isolation** to provide ACID guarantees while allowing high concurrency.
+ByteRAG implements **Multi-Version Concurrency Control (MVCC)** with **Snapshot Isolation** to provide ACID guarantees while allowing high concurrency.
 
 ### Key Features
 
@@ -187,7 +187,7 @@ fn main() -> byterag_core::ByteRagResult<()> {
 
 ### Write-Write Conflicts
 
-DBX detects write conflicts automatically:
+ByteRAG detects write conflicts automatically:
 
 ```rust
 use byterag_core::{Database, ByteRagError};
@@ -224,7 +224,7 @@ fn main() -> byterag_core::ByteRagResult<()> {
 
 ## Transaction Isolation Levels
 
-DBX provides **Snapshot Isolation**, which prevents:
+ByteRAG provides **Snapshot Isolation**, which prevents:
 
 - ✅ **Dirty Reads**: Reading uncommitted data
 - ✅ **Non-Repeatable Reads**: Same query returns different results
@@ -384,7 +384,7 @@ fn increment_counter(db: &Database, key: &[u8]) -> byterag_core::ByteRagResult<u
 
 ## Garbage Collection
 
-DBX automatically removes old versions that are no longer visible to any transaction.
+ByteRAG automatically removes old versions that are no longer visible to any transaction.
 
 ### How It Works
 
@@ -517,9 +517,9 @@ fn main() -> byterag_core::ByteRagResult<()> {
 
 ## Comparison with Other Systems
 
-### DBX vs Traditional Locking
+### ByteRAG vs Traditional Locking
 
-| Feature | DBX (MVCC) | Traditional Locks |
+| Feature | ByteRAG (MVCC) | Traditional Locks |
 |---------|------------|-------------------|
 | Read-Write Blocking | No | Yes |
 | Write-Write Blocking | Conflict Detection | Lock Waiting |
@@ -534,7 +534,7 @@ fn main() -> byterag_core::ByteRagResult<()> {
 | Read Uncommitted | ❌ | ❌ | ❌ |
 | Read Committed | ✅ | ❌ | ❌ |
 | Repeatable Read | ✅ | ✅ | ❌ |
-| **Snapshot Isolation (DBX)** | ✅ | ✅ | ✅ |
+| **Snapshot Isolation (ByteRAG)** | ✅ | ✅ | ✅ |
 | Serializable | ✅ | ✅ | ✅ |
 
 ---
@@ -545,4 +545,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [SQL Reference](sql-reference) — Use SQL with transactions
 - [Performance Benchmarks](../benchmarks) — Optimize transaction performance
 - [API Reference](../api/transaction) — Complete transaction API
+
 

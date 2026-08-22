@@ -11,15 +11,15 @@ nav_order: 1
 
 ## Download
 
-Download the latest release from [GitHub Releases](https://github.com/bytelogiccore-spec/DBX/releases).
+Download the latest release from [GitHub Releases](https://github.com/bytelogiccore-spec/ByteRAG/releases).
 
 ## Package Contents
 
 ```
 byterag-ffi/
 ├── include/
-│   ├── dbx.h        # C API header
-│   └── dbx.hpp      # C++ wrapper header
+│   ├── ByteRAG.h        # C API header
+│   └── ByteRAG.hpp      # C++ wrapper header
 ├── lib/
 │   └── byterag_ffi.dll  # Windows x64
 └── README.md
@@ -76,12 +76,12 @@ target_link_libraries(myapp byterag_ffi)
 ### C
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 
 int main() {
     DbxDatabase* db = byterag_open_in_memory();
-    printf("DBX C loaded successfully!\n");
+    printf("ByteRAG C loaded successfully!\n");
     byterag_close(db);
     return 0;
 }
@@ -90,12 +90,12 @@ int main() {
 ### C++
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 
 int main() {
-    auto db = dbx::Database::openInMemory();
-    std::cout << "DBX C++ loaded successfully!" << std::endl;
+    auto db = ByteRAG::Database::openInMemory();
+    std::cout << "ByteRAG C++ loaded successfully!" << std::endl;
     return 0;
 }
 ```
@@ -105,4 +105,5 @@ int main() {
 - [Quick Start](quickstart) - Get started in 5 minutes
 - [C API](c-api) - C function reference
 - [C++ API](cpp-api) - C++ class reference
+
 

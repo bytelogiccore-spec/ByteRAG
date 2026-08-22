@@ -7,7 +7,7 @@ parent: English
 
 # Language Bindings
 
-DBX provides official bindings for multiple programming languages, allowing you to use the high-performance embedded database in your preferred development environment.
+ByteRAG provides official bindings for multiple programming languages, allowing you to use the high-performance embedded database in your preferred development environment.
 
 ---
 
@@ -36,7 +36,7 @@ cd lang/python
 pip install -e .
 ```
 
-[View Python Documentation →](https://github.com/ByteLogicCore/DBX/tree/main/lang/python)
+[View Python Documentation →](https://github.com/bytelogiccore-spec/ByteRAG/tree/main/lang/python)
 
 ---
 
@@ -45,7 +45,7 @@ pip install -e .
 Modern .NET bindings with RAII and high-performance batch operations.
 
 ```csharp
-using DBX.Client;
+using ByteRAG.Client;
 using System.Text;
 
 using (var db = new DbxDatabase("./my_database"))
@@ -73,7 +73,7 @@ cd lang/dotnet
 dotnet build
 ```
 
-[View C# Documentation →](https://github.com/ByteLogicCore/DBX/tree/main/lang/dotnet)
+[View C# Documentation →](https://github.com/bytelogiccore-spec/ByteRAG/tree/main/lang/dotnet)
 
 ---
 
@@ -84,7 +84,7 @@ Low-level C API and modern C++17 wrapper.
 ### C Interface
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 
 DbxHandle* db = byterag_open("my_database.db");
 
@@ -103,9 +103,9 @@ byterag_close(db);
 ### C++ Interface
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 
-using namespace dbx;
+using namespace ByteRAG;
 
 auto db = Database::openInMemory();
 db.insert("users", "user:1", "Alice");
@@ -127,7 +127,7 @@ cd lang/c
 make
 ```
 
-[View C/C++ Documentation →](https://github.com/ByteLogicCore/DBX/tree/main/lang/c)
+[View C/C++ Documentation →](https://github.com/bytelogiccore-spec/ByteRAG/tree/main/lang/c)
 
 ---
 
@@ -160,7 +160,7 @@ cd lang/nodejs
 npm install
 ```
 
-[View Node.js Documentation →](https://github.com/ByteLogicCore/DBX/tree/main/lang/nodejs)
+[View Node.js Documentation →](https://github.com/bytelogiccore-spec/ByteRAG/tree/main/lang/nodejs)
 
 ---
 
@@ -215,11 +215,12 @@ All language bindings support:
 
 ## 🤝 Contributing
 
-Want to add bindings for another language? See our [Contributing Guide](https://github.com/ByteLogicCore/DBX/blob/main/CONTRIBUTING.md).
+Want to add bindings for another language? See our [Contributing Guide](https://github.com/bytelogiccore-spec/ByteRAG/blob/main/docs/english/contributing.md).
 
 ---
 
 ## 📄 License
 
-All language bindings are dual-licensed under MIT or Apache-2.0, same as the core DBX library.
+All language bindings are dual-licensed under MIT or Apache-2.0, same as the core ByteRAG library.
+
 

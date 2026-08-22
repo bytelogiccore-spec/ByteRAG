@@ -37,7 +37,7 @@ Install-Package DBX.Dotnet
 using DBX.Dotnet;
 
 var db = Database.OpenInMemory();
-Console.WriteLine("DBX .NET loaded successfully!");
+Console.WriteLine("ByteRAG .NET loaded successfully!");
 db.Dispose();
 ```
 
@@ -88,3 +88,4 @@ db.Dispose();
 - [Quick Start](quickstart) - Get started in 5 minutes
 - [SQL Guide](sql-guide) - SQL usage
 - [API Reference](api-reference) - Complete API
+

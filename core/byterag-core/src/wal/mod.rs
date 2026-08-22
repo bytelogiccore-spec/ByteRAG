@@ -35,7 +35,7 @@
 use crate::error::{ByteRagError, ByteRagResult};
 use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions};
-use std::io::{BufReader, Write};
+use std::io::{BufReader, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -303,6 +303,47 @@ impl WriteAheadLog {
     pub fn current_sequence(&self) -> u64 {
         self.sequence.load(Ordering::SeqCst)
     }
+
+    /// After durable data is in WOS, write a checkpoint marker and rewrite the WAL
+    /// so only that checkpoint remains (under the file mutex — safe with an open handle).
+    ///
+    /// Does **not** re-apply WAL records. Callers must have already flushed Delta → WOS.
+    pub fn checkpoint_and_truncate(&self) -> ByteRagResult<u64> {
+        let mut guard = self
+            .log_file
+            .lock()
+            .map_err(|e| ByteRagError::Wal(format!("lock failed: {}", e)))?;
+
+        guard.sync_all()?;
+
+        let seq = self.sequence.load(Ordering::SeqCst);
+        let checkpoint = WalRecord::Checkpoint { sequence: seq };
+        let encoded = bincode::serialize(&checkpoint)
+            .map_err(|e| ByteRagError::Wal(format!("serialization failed: {}", e)))?;
+
+        // Replace the open handle with a truncated file, then restore append mode.
+        let mut fresh = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .read(true)
+            .open(&self.path)?;
+
+        let len = (encoded.len() as u32).to_le_bytes();
+        fresh.write_all(&len)?;
+        fresh.write_all(&encoded)?;
+        fresh.sync_all()?;
+        fresh.seek(SeekFrom::End(0))?;
+
+        let reopened = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .append(true)
+            .open(&self.path)?;
+        *guard = reopened;
+
+        Ok(seq)
+    }
 }
 
 #[cfg(test)]
@@ -400,5 +441,44 @@ mod tests {
         let records = wal.replay().unwrap();
         assert_eq!(records.len(), 1);
         assert_eq!(records[0], checkpoint);
+    }
+
+    #[test]
+    fn wal_checkpoint_and_truncate_shrinks_file() {
+        let temp_file = NamedTempFile::new().unwrap();
+        let path = temp_file.path().to_path_buf();
+        let wal = WriteAheadLog::open(&path).unwrap();
+
+        for i in 0..200u32 {
+            let record = WalRecord::Insert {
+                table: "t".to_string(),
+                key: format!("k{i}").into_bytes(),
+                value: vec![b'x'; 64],
+                ts: i as u64,
+            };
+            wal.append(&record).unwrap();
+        }
+        wal.sync().unwrap();
+        let size_before = std::fs::metadata(&path).unwrap().len();
+        assert!(size_before > 1000);
+
+        let seq = wal.checkpoint_and_truncate().unwrap();
+        let size_after = std::fs::metadata(&path).unwrap().len();
+        assert!(
+            size_after < size_before,
+            "after={size_after} before={size_before}"
+        );
+        assert!(
+            size_after <= size_before / 20 || size_after < 512,
+            "WAL should shrink to checkpoint scale: after={size_after} before={size_before}"
+        );
+
+        let records = wal.replay().unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0], WalRecord::Checkpoint { sequence: seq });
+
+        // Further appends still work
+        wal.append(&WalRecord::Commit { tx_id: 1 }).unwrap();
+        assert_eq!(wal.replay().unwrap().len(), 2);
     }
 }

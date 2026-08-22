@@ -5,6 +5,7 @@
 
 pub mod arrow_ipc;
 pub mod backup;
+pub mod brdb;
 pub mod cache;
 pub mod columnar;
 pub mod columnar_cache;

@@ -11,7 +11,7 @@ has_children: true
 
 [![PyPI](https://img.shields.io/pypi/v/byterag-py.svg)](https://pypi.org/project/byterag-py/)
 
-고성능 임베디드 데이터베이스 DBX의 공식 Python 바인딩입니다.
+고성능 임베디드 데이터베이스 ByteRAG의 공식 Python 바인딩입니다.
 
 ## 주요 기능
 
@@ -63,4 +63,5 @@ with Database.open_in_memory() as db:
 ## 라이선스
 
 MIT License
+
 

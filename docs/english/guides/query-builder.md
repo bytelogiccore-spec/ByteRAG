@@ -15,7 +15,7 @@ A safe and convenient API for constructing SQL queries and binding parameters.
 
 ## 1. Parameter Binding (Parameterized Queries)
 
-Using parameter binding instead of string interpolation prevents SQL injection and improves performance. DBX supports both positional and named parameters.
+Using parameter binding instead of string interpolation prevents SQL injection and improves performance. ByteRAG supports both positional and named parameters.
 
 ### Positional Binding (`$1`, `$2`, ...)
 
@@ -115,5 +115,6 @@ Supported aggregates: `count`, `sum`, `avg`, `min`, `max`
 ## Next Steps
 
 - [Schema Builder](schema-builder) — Type-safe table schema creation
-- [SQL Reference](sql-reference) — Full SQL support in DBX
+- [SQL Reference](sql-reference) — Full SQL support in ByteRAG
+
 

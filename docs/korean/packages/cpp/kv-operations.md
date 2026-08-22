@@ -9,14 +9,14 @@ nav_order: 5
 
 # Key-Value 작업
 
-DBX는 SQL 외에도 고성능 Key-Value 스토어로 사용할 수 있습니다.
+ByteRAG는 SQL 외에도 고성능 Key-Value 스토어로 사용할 수 있습니다.
 
 ## 기본 CRUD (C)
 
 ### 삽입
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <string.h>
 
 DbxDatabase* db = byterag_open_in_memory();
@@ -61,9 +61,9 @@ printf("Total users: %zu\n", count);
 ### 삽입
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 
-auto db = dbx::Database::openInMemory();
+auto db = ByteRAG::Database::openInMemory();
 
 // 기본 삽입
 db.insert("users", "user:1", "Alice");
@@ -131,7 +131,7 @@ db.flush();
 
 {% raw %}
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <chrono>
 #include <nlohmann/json.hpp>
 
@@ -139,10 +139,10 @@ using json = nlohmann::json;
 
 class SessionStore {
 private:
-    dbx::Database db;
+    ByteRAG::Database db;
 
 public:
-    SessionStore(const std::string& dbPath) : db(dbx::Database::open(dbPath)) {}
+    SessionStore(const std::string& dbPath) : db(ByteRAG::Database::open(dbPath)) {}
 
     void createSession(const std::string& sessionId, const json& data, int ttlSeconds = 3600) {
         auto now = std::chrono::system_clock::now().time_since_epoch().count();
@@ -207,12 +207,12 @@ int main() {
 template<typename T>
 class Cache {
 private:
-    dbx::Database db;
+    ByteRAG::Database db;
     int defaultTtl;
 
 public:
     Cache(const std::string& dbPath, int defaultTtlSeconds = 300)
-        : db(dbx::Database::open(dbPath)), defaultTtl(defaultTtlSeconds) {}
+        : db(ByteRAG::Database::open(dbPath)), defaultTtl(defaultTtlSeconds) {}
 
     void set(const std::string& key, const T& value, int ttlSeconds = -1) {
         int ttl = (ttlSeconds > 0) ? ttlSeconds : defaultTtl;
@@ -309,7 +309,7 @@ byterag_flush(db);
 ```cpp
 // ✅ RAII 패턴
 {
-    auto db = dbx::Database::open("data.db");
+    auto db = ByteRAG::Database::open("data.db");
     for (int i = 0; i < 10000; i++) {
         db.insert("data", "key:" + std::to_string(i), "value:" + std::to_string(i));
     }
@@ -321,4 +321,6 @@ byterag_flush(db);
 - [SQL 가이드](sql-guide) - SQL 사용법
 - [C API](c-api) - C 함수 레퍼런스
 - [C++ API](cpp-api) - C++ 클래스 레퍼런스
+
+
 

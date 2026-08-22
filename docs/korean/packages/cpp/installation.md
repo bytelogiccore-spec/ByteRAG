@@ -13,7 +13,7 @@ nav_order: 1
 
 ### GitHub Releases에서 다운로드
 
-1. [Releases 페이지](https://github.com/bytelogiccore-spec/DBX/releases) 방문
+1. [Releases 페이지](https://github.com/bytelogiccore-spec/ByteRAG/releases) 방문
 2. 최신 버전의 `byterag-ffi-windows-x64.zip` 다운로드
 3. 압축 해제
 
@@ -22,8 +22,8 @@ nav_order: 1
 ```
 byterag-ffi-windows-x64/
 ├── include/
-│   ├── dbx.h         (C 헤더)
-│   └── dbx.hpp       (C++ 래퍼)
+│   ├── ByteRAG.h         (C 헤더)
+│   └── ByteRAG.hpp       (C++ 래퍼)
 ├── lib/
 │   ├── byterag_ffi.dll   (동적 라이브러리)
 │   ├── byterag_ffi.lib   (임포트 라이브러리)
@@ -84,7 +84,7 @@ byterag-ffi-windows-x64/
 cmake_minimum_required(VERSION 3.15)
 project(MyApp)
 
-# DBX FFI 경로 설정
+# ByteRAG FFI 경로 설정
 set(byterag_FFI_DIR "D:/byterag-ffi")
 
 # 헤더 경로
@@ -160,13 +160,13 @@ clang -I./include -L./lib main.c -lbyterag_ffi -o myapp.exe
 ### C 테스트
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 
 int main() {
     DbxDatabase* db = byterag_open_in_memory();
     if (db) {
-        printf("DBX FFI loaded successfully!\n");
+        printf("ByteRAG FFI loaded successfully!\n");
         byterag_close(db);
         return 0;
     }
@@ -177,13 +177,13 @@ int main() {
 ### C++ 테스트
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 
 int main() {
     try {
-        auto db = dbx::Database::openInMemory();
-        std::cout << "DBX FFI loaded successfully!" << std::endl;
+        auto db = ByteRAG::Database::openInMemory();
+        std::cout << "ByteRAG FFI loaded successfully!" << std::endl;
         return 0;
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
@@ -226,4 +226,5 @@ gcc -I./include main.c ./lib/byterag_ffi.a -lws2_32 -lbcrypt -luserenv -o myapp.
 - [빠른 시작](quickstart) - 첫 프로그램 작성
 - [C API](c-api) - C 함수 레퍼런스
 - [C++ API](cpp-api) - C++ 클래스 레퍼런스
+
 

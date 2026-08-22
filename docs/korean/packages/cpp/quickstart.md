@@ -9,12 +9,12 @@ nav_order: 2
 
 # 빠른 시작
 
-5분 안에 DBX를 시작해보세요!
+5분 안에 ByteRAG를 시작해보세요!
 
 ## C 예제
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -50,12 +50,12 @@ int main() {
 ## C++ 예제
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 
 int main() {
     // RAII 래퍼
-    auto db = dbx::Database::openInMemory();
+    auto db = ByteRAG::Database::openInMemory();
     
     // KV 작업
     db.insert("users", "user:1", "Alice");
@@ -93,4 +93,6 @@ gcc -I./include -L./lib main.c -lbyterag_ffi -o myapp.exe
 - [설치](installation) - 상세 설치 가이드
 - [C API](c-api) - C 함수 레퍼런스
 - [C++ API](cpp-api) - C++ 클래스 레퍼런스
+
+
 

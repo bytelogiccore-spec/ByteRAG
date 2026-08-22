@@ -3,13 +3,13 @@ layout: default
 title: 시작하기
 nav_order: 1
 parent: 한국어
-description: "DBX 데이터베이스 빠른 시작 가이드"
+description: "ByteRAG 데이터베이스 빠른 시작 가이드"
 ---
 
 # 시작하기
 {: .no_toc }
 
-이 가이드는 DBX를 설치하고 첫 번째 쿼리를 실행하는 데 도움을 줍니다.
+이 가이드는 ByteRAG를 설치하고 첫 번째 쿼리를 실행하는 데 도움을 줍니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -24,7 +24,7 @@ description: "DBX 데이터베이스 빠른 시작 가이드"
 
 ### Rust
 
-`Cargo.toml`에 DBX를 추가하세요:
+`Cargo.toml`에 ByteRAG를 추가하세요:
 
 ```toml
 [dependencies]
@@ -36,7 +36,7 @@ byterag-core = "0.2.0-beta"
 NuGet을 통해 설치하거나 `byterag-csharp` 바인딩을 사용하세요:
 
 ```bash
-dotnet add package DBX.Client
+dotnet add package ByteRAG.Client
 ```
 
 ---
@@ -105,7 +105,7 @@ println!("Total users: {}", count);
 
 ## MVCC 트랜잭션
 
-DBX는 스냅샷 격리(Snapshot Isolation) 기능이 포함된 ACID 트랜잭션을 지원합니다:
+ByteRAG는 스냅샷 격리(Snapshot Isolation) 기능이 포함된 ACID 트랜잭션을 지원합니다:
 
 ```rust
 use byterag_core::Database;
@@ -127,7 +127,7 @@ tx.commit()?;
 
 ## SQL 쿼리
 
-DBX는 표준 SQL 쿼리를 지원합니다:
+ByteRAG는 표준 SQL 쿼리를 지원합니다:
 
 ```rust
 use byterag_core::Database;
@@ -163,7 +163,7 @@ let results = db.execute_sql("SELECT id, age FROM users WHERE age > 28")?;
 
 ## 암호화
 
-DBX는 AES-256-GCM-SIV 및 ChaCha20-Poly1305 암호화를 지원합니다:
+ByteRAG는 AES-256-GCM-SIV 및 ChaCha20-Poly1305 암호화를 지원합니다:
 
 ```rust
 use byterag_core::Database;
@@ -213,4 +213,6 @@ if let Some(gpu) = db.gpu_manager() {
 - [벤치마크](benchmarks) — 성능 비교 확인
 - [예제](examples/quick-start) — 더 많은 코드 예제 살펴보기
 - [API 문서](https://docs.rs/byterag-core) — 전체 Rust API 레퍼런스
+
+
 

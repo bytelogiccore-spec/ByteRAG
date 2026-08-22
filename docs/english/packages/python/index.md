@@ -11,7 +11,7 @@ has_children: true
 
 [![PyPI](https://img.shields.io/pypi/v/byterag-py.svg)](https://pypi.org/project/byterag-py/)
 
-Official Python bindings for DBX high-performance embedded database.
+Official Python bindings for ByteRAG high-performance embedded database.
 
 ## Key Features
 
@@ -66,4 +66,5 @@ db.close()
 ## License
 
 MIT License
+
 

@@ -8,14 +8,14 @@ parent: 한국어
 # SQL API
 {: .no_toc }
 
-DBX의 SQL 쿼리 실행을 위한 API 레퍼런스입니다.
+ByteRAG의 SQL 쿼리 실행을 위한 API 레퍼런스입니다.
 {: .fs-6 .fw-300 }
 
 ---
 
 ## 개요
 
-DBX는 Apache Arrow 기반의 쿼리 실행 엔진을 사용하여 복잡한 분석 쿼리를 지원합니다.
+ByteRAG는 Apache Arrow 기반의 쿼리 실행 엔진을 사용하여 복잡한 분석 쿼리를 지원합니다.
 
 ### 지원하는 주요 구문
 - `SELECT`: 컬럼 선택 및 Alias
@@ -57,7 +57,7 @@ for i in 0..result.num_rows() {
 
 ## 쿼리 최적화
 
-DBX는 다음과 같은 최적화를 자동으로 수행합니다:
+ByteRAG는 다음과 같은 최적화를 자동으로 수행합니다:
 
 1. **Projection Pushdown**: 필요한 컬럼만 선택적으로 로드
 2. **Predicate Pushdown**: 필터 조건을 데이터 소스 단계에서 미리 적용
@@ -76,4 +76,5 @@ DBX는 다음과 같은 최적화를 자동으로 수행합니다:
 - [SQL 레퍼런스 가이드](../guides/sql-reference) — 상세 SQL 구문 및 예제
 - [GPU 가속 가이드](../guides/gpu-acceleration) — GPU를 활용한 쿼리 최적화
 - [데이터베이스 API](database) — 기본 CRUD 작업 API
+
 

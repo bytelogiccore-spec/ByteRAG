@@ -9,7 +9,7 @@ description: "Guide for building high-performance real-time data pipelines"
 # Streaming Ingestion
 {: .no_toc }
 
-Streaming Ingestion is a high-performance pipeline feature that allows you to stream data seamlessly from external sources or real-time event streams into DBX.
+Streaming Ingestion is a high-performance pipeline feature that allows you to stream data seamlessly from external sources or real-time event streams into ByteRAG.
 {: .fs-6 .fw-300 }
 
 ## Table of Contents
@@ -22,7 +22,7 @@ Streaming Ingestion is a high-performance pipeline feature that allows you to st
 
 ## Overview
 
-DBX's **StreamIngester** maximizes write performance by optimizing batch processing. It provides significantly higher throughput than individual `insert()` calls and supports CDC (Change Data Capture) patterns.
+ByteRAG's **StreamIngester** maximizes write performance by optimizing batch processing. It provides significantly higher throughput than individual `insert()` calls and supports CDC (Change Data Capture) patterns.
 
 ### Key Features
 - **MPSC Pipeline**: Uses a Multi-Producer Single-Consumer model to safely ingest data from multiple sources.
@@ -107,4 +107,5 @@ The streaming engine handles three types of events:
 - [CRUD Operations](crud-operations) — Standard data insertion methods
 - [Materialized Views](materialized-views) — Build real-time analytical views on ingested data
 - [Database Config](db-config) — Optimize durability and synchronization settings
+
 

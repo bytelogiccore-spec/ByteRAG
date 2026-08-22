@@ -3,13 +3,13 @@ layout: default
 title: DB 설정 가이드
 parent: 한국어
 nav_order: 35
-description: "DbConfig, DirtyBufferMode, ParallelismConfig, DurabilityLevel, EncryptionConfig — DBX 전체 설정 항목 상세 가이드"
+description: "DbConfig, DirtyBufferMode, ParallelismConfig, DurabilityLevel, EncryptionConfig — ByteRAG 전체 설정 항목 상세 가이드"
 ---
 
 # DB 설정 가이드
 {: .no_toc }
 
-소스코드 기반 DBX 전체 설정 항목 참조. `Database::open()` / `Database::open_with_config()` 두 가지 생성 방법을 설명합니다.
+소스코드 기반 ByteRAG 전체 설정 항목 참조. `Database::open()` / `Database::open_with_config()` 두 가지 생성 방법을 설명합니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -411,4 +411,5 @@ let db = Database::open_in_memory()?;
 - [암호화 가이드](encryption) — EncryptionConfig 심화
 - [WAL 복구 가이드](wal-recovery) — WAL 동작 원리
 - [스토리지 레이어](storage-layers) — 5-Tier 아키텍처
+
 

@@ -9,7 +9,7 @@ nav_order: 3
 
 # Key-Value 작업
 
-DBX는 SQL 외에도 고성능 Key-Value 스토어로 사용할 수 있습니다.
+ByteRAG는 SQL 외에도 고성능 Key-Value 스토어로 사용할 수 있습니다.
 
 ## 기본 CRUD
 
@@ -276,4 +276,5 @@ with Database("data.db") as db:
 - [SQL 가이드](sql-guide) - SQL 사용법
 - [고급 기능](advanced) - 트랜잭션, 암호화
 - [API 레퍼런스](api-reference) - 전체 API
+
 

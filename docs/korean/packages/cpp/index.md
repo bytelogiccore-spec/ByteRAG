@@ -9,7 +9,7 @@ has_children: true
 
 # C/C++ — byterag-ffi
 
-고성능 임베디드 데이터베이스 DBX의 공식 C/C++ FFI (Foreign Function Interface) 바인딩입니다.
+고성능 임베디드 데이터베이스 ByteRAG의 공식 C/C++ FFI (Foreign Function Interface) 바인딩입니다.
 
 ## 주요 기능
 
@@ -25,7 +25,7 @@ has_children: true
 ### C 예제
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 
 int main() {
@@ -64,13 +64,13 @@ int main() {
 ### C++ 예제
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 #include <string>
 
 int main() {
     // RAII 래퍼 사용
-    dbx::Database db = dbx::Database::openInMemory();
+    ByteRAG::Database db = ByteRAG::Database::openInMemory();
     
     // KV 작업
     db.insert("users", "user:1", "Alice");
@@ -113,4 +113,6 @@ int main() {
 ## 라이선스
 
 MIT License
+
+
 

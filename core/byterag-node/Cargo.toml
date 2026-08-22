@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-byterag-core = { path = "../byterag-core", version = "0.1.0" }
+byterag-core = { path = "../byterag-core", version = "0.3.0" }
 napi = { version = "3", features = ["async"] }
 napi-derive = "3"
 

@@ -94,5 +94,6 @@ let schema = SchemaBuilder::new()
 ## Next Steps
 
 - [Query Builder](query-builder) — Fluent API for querying data
-- [SQL Reference](sql-reference) — Standard SQL usage in DBX
+- [SQL Reference](sql-reference) — Standard SQL usage in ByteRAG
+
 

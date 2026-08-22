@@ -6,9 +6,9 @@ parent: English
 has_children: true
 ---
 
-# DBX Packages
+# ByteRAG Packages
 
-DBX provides official bindings for multiple languages and platforms.
+ByteRAG provides official bindings for multiple languages and platforms.
 
 | Package | Registry | Installation |
 |---------|----------|--------------|
@@ -17,4 +17,5 @@ DBX provides official bindings for multiple languages and platforms.
 | [byterag-py]({{ site.baseurl }}/english/packages/python) | PyPI | `pip install byterag-py` |
 | [byterag-py]({{ site.baseurl }}/english/packages/nodejs) | npm | `npm install byterag-py` |
 | [C/C++]({{ site.baseurl }}/english/packages/cpp) | — | Header + DLL/LIB |
+
 

@@ -8,7 +8,7 @@ grand_parent: 한국어
 
 # 크로스-노드 샤딩
 
-DBX의 크로스-노드 샤딩은 **Consistent Hashing** 기반으로 데이터를 여러 노드에 분산 저장합니다.
+ByteRAG의 크로스-노드 샤딩은 **Consistent Hashing** 기반으로 데이터를 여러 노드에 분산 저장합니다.
 
 ---
 
@@ -132,4 +132,5 @@ let outcome = coord.commit_or_abort(
 | `sharding/router.rs` | ShardNode, ShardRouter |
 | `sharding/rebalancer.rs` | 데이터 이관 태스크 계산/실행 |
 | `sharding/two_phase.rs` | 2PC Coordinator |
+
 

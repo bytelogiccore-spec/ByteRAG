@@ -9,7 +9,7 @@ nav_order: 3
 
 # C API Reference
 
-Complete C API reference for DBX.
+Complete C API reference for ByteRAG.
 
 ## Database Functions
 
@@ -153,7 +153,7 @@ byterag_flush(db);
 
 ### `void byterag_free_bytes(uint8_t* ptr)`
 
-Frees memory allocated by DBX.
+Frees memory allocated by ByteRAG.
 
 **Example:**
 ```c
@@ -162,7 +162,7 @@ byterag_free_bytes(result);
 
 ### `void byterag_free_string(char* ptr)`
 
-Frees a string allocated by DBX.
+Frees a string allocated by ByteRAG.
 
 **Example:**
 ```c
@@ -183,7 +183,7 @@ if (byterag_insert(db, "users", key, key_len, value, value_len) != 0) {
 ## Complete Example
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -235,4 +235,5 @@ int main() {
 - [C++ API](cpp-api) - C++ wrapper
 - [SQL Guide](sql-guide) - SQL usage
 - [Examples](examples) - More examples
+
 

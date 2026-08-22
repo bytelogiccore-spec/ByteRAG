@@ -11,7 +11,7 @@ DBX는 Bloom Filter 기반 인덱스를 제공하여 쿼리 성능을 크게 향
 
 ## Overview
 
-DBX 인덱스의 주요 특징:
+ByteRAG 인덱스의 주요 특징:
 - **Bloom Filter 기반**: 메모리 효율적인 확률적 자료구조
 - **빠른 조회**: O(1) 시간 복잡도로 존재 여부 확인
 - **낮은 False Positive**: 정확도 99% 이상
@@ -122,7 +122,7 @@ use byterag_core::{Database, ByteRagResult};
 use std::time::Instant;
 
 fn main() -> ByteRagResult<()> {
-    println!("=== DBX Indexing Example ===\n");
+    println!("=== ByteRAG Indexing Example ===\n");
     
     let db = Database::open_in_memory()?;
     
@@ -172,7 +172,7 @@ cargo run --example index_test
 ## Expected Output
 
 ```
-=== DBX Indexing Example ===
+=== ByteRAG Indexing Example ===
 
 --- Creating Index ---
 ✓ Index created
@@ -280,4 +280,5 @@ for row_id in row_ids {
 - [SQL Reference](./sql-reference.md) - SQL에서 인덱스 활용
 - [GPU Acceleration](./gpu-acceleration.md) - GPU를 활용한 대용량 데이터 처리
 - [CRUD Operations](./crud-operations.md) - 기본 데이터 작업
+
 

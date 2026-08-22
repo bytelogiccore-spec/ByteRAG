@@ -7,7 +7,7 @@ nav_order: 24
 
 # Cross-Node Sharding
 
-DBX distributes data across multiple nodes using **Consistent Hashing**, providing horizontal scalability with minimal data movement.
+ByteRAG distributes data across multiple nodes using **Consistent Hashing**, providing horizontal scalability with minimal data movement.
 
 ---
 
@@ -130,4 +130,5 @@ let outcome = coord.commit_or_abort(
 | `sharding/router.rs` | ShardNode, ShardRouter |
 | `sharding/rebalancer.rs` | Migration task computation and execution |
 | `sharding/two_phase.rs` | 2PC Coordinator |
+
 

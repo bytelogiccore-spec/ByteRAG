@@ -7,7 +7,7 @@ nav_order: 14
 
 # Compression Quick Start
 
-The fastest way to use compression in DBX.
+The fastest way to use compression in ByteRAG.
 
 ## 1. Enabling Compression
 
@@ -91,4 +91,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**Compression Guide**](../guides/compression.md) — Complete compression guide
 - [**Encryption**](encryption.md) — Data encryption
 - [**Quick Start**](quick-start.md) — Basic CRUD
+
 

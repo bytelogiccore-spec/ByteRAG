@@ -7,13 +7,13 @@ parent: English
 
 # SQL API
 
-SQL query execution for DBX.
+SQL query execution for ByteRAG.
 
 ---
 
 ## Overview
 
-DBX provides **SQL support** for complex queries using Apache Arrow and DataFusion-inspired query execution.
+ByteRAG provides **SQL support** for complex queries using Apache Arrow and DataFusion-inspired query execution.
 
 **Supported SQL Features:**
 - `SELECT` - Column projection
@@ -218,7 +218,7 @@ let users: Vec<(i64, String)> = (0..result.num_rows())
 
 ### Automatic Optimizations
 
-DBX automatically applies:
+ByteRAG automatically applies:
 
 1. **Projection Pushdown** - Only read required columns
 2. **Predicate Pushdown** - Filter data early
@@ -235,7 +235,7 @@ SELECT COUNT(*) FROM users WHERE age > 18
 
 ### GPU Acceleration
 
-For large datasets (>1M rows), DBX can use GPU acceleration:
+For large datasets (>1M rows), ByteRAG can use GPU acceleration:
 
 ```rust
 // GPU is automatically used for supported operations
@@ -401,4 +401,5 @@ db.delete("users", b"user:1")?;
 - [Database API](database) - Core database operations
 - [SQL Reference Guide](../guides/sql-reference) - Detailed SQL syntax
 - [GPU Acceleration Guide](../guides/gpu-acceleration) - GPU query optimization
+
 

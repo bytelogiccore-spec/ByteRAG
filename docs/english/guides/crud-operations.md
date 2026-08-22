@@ -3,13 +3,13 @@ layout: default
 title: CRUD Operations
 parent: English
 nav_order: 20
-description: "Complete guide to Create, Read, Update, Delete operations in DBX"
+description: "Complete guide to Create, Read, Update, Delete operations in ByteRAG"
 ---
 
 # CRUD Operations
 {: .no_toc }
 
-Complete guide to performing Create, Read, Update, and Delete operations in DBX.
+Complete guide to performing Create, Read, Update, and Delete operations in ByteRAG.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -22,7 +22,7 @@ Complete guide to performing Create, Read, Update, and Delete operations in DBX.
 
 ## Overview
 
-DBX provides a simple and efficient API for basic database operations. All CRUD operations are performed through the `Database` instance and support both single-record and batch operations.
+ByteRAG provides a simple and efficient API for basic database operations. All CRUD operations are performed through the `Database` instance and support both single-record and batch operations.
 
 ### Key Features
 
@@ -300,7 +300,7 @@ fn should_delete(data: &[u8]) -> bool {
 
 ### Delta Store Caching
 
-DBX uses an in-memory Delta Store for hot data:
+ByteRAG uses an in-memory Delta Store for hot data:
 
 ```rust
 use byterag_core::Database;
@@ -470,7 +470,7 @@ See [Transactions Guide](transactions) for more details.
 fn upsert(db: &Database, table: &str, key: &[u8], value: &[u8]) 
     -> byterag_core::ByteRagResult<()> 
 {
-    // DBX insert overwrites existing values
+    // ByteRAG insert overwrites existing values
     db.insert(table, key, value)?;
     Ok(())
 }
@@ -522,4 +522,5 @@ fn increment_counter(db: &Database, key: &[u8]) -> byterag_core::ByteRagResult<u
 - [SQL Reference](sql-reference) — Use SQL for complex queries
 - [Performance Benchmarks](../benchmarks) — Optimize your database
 - [API Reference](../api/database) — Complete API documentation
+
 

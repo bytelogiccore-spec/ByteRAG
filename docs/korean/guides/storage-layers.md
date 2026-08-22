@@ -3,13 +3,13 @@ layout: default
 title: 저장소 계층
 parent: 한국어
 nav_order: 23
-description: "DBX의 5계층 하이브리드 저장소 아키텍처 이해"
+description: "ByteRAG의 5계층 하이브리드 저장소 아키텍처 이해"
 ---
 
 # 저장소 계층
 {: .no_toc }
 
-DBX의 5계층 하이브리드 저장소(5-Tier Hybrid Storage) 아키텍처에 대한 상세 가이드입니다.
+ByteRAG의 5계층 하이브리드 저장소(5-Tier Hybrid Storage) 아키텍처에 대한 상세 가이드입니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,7 +22,7 @@ DBX의 5계층 하이브리드 저장소(5-Tier Hybrid Storage) 아키텍처에 
 
 ## 아키텍처 개요
 
-DBX는 트랜잭션(OLTP)과 분석(OLAP) 워크로드를 모두 최적화하기 위해 설계된 정교한 **5계층 하이브리드 저장소** 구조를 사용합니다.
+ByteRAG는 트랜잭션(OLTP)과 분석(OLAP) 워크로드를 모두 최적화하기 위해 설계된 정교한 **5계층 하이브리드 저장소** 구조를 사용합니다.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -92,3 +92,4 @@ DBX는 트랜잭션(OLTP)과 분석(OLAP) 워크로드를 모두 최적화하기
 - [CRUD 작업](crud-operations) — 기본 데이터베이스 작업
 - [트랜잭션 가이드](transactions) — MVCC 트랜잭션 상세
 - [SQL 레퍼런스](sql-reference) — 분석 쿼리 최적화
+

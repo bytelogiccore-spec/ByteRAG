@@ -3,13 +3,13 @@ layout: default
 title: SQL Reference
 parent: English
 nav_order: 21
-description: "Complete SQL syntax reference for DBX"
+description: "Complete SQL syntax reference for ByteRAG"
 ---
 
 # SQL Reference
 {: .no_toc }
 
-Complete reference for SQL queries in DBX.
+Complete reference for SQL queries in ByteRAG.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -22,7 +22,7 @@ Complete reference for SQL queries in DBX.
 
 ## Overview
 
-DBX supports standard SQL queries through Apache Arrow and DataFusion integration. SQL queries operate on the **Columnar Cache** layer for optimal analytical performance.
+ByteRAG supports standard SQL queries through Apache Arrow and DataFusion integration. SQL queries operate on the **Columnar Cache** layer for optimal analytical performance.
 
 ### Supported Features
 
@@ -485,7 +485,7 @@ let results = db.execute_sql(
 
 ### Projection Pushdown
 
-DBX automatically pushes column selection down to storage:
+ByteRAG automatically pushes column selection down to storage:
 
 ```rust
 // Only reads 'id' and 'name' columns from storage
@@ -797,4 +797,5 @@ let results = db.execute_sql(
 - [Transactions](transactions) — Use SQL with transactions
 - [GPU Acceleration](gpu-acceleration) — Accelerate SQL queries
 - [API Reference](../api/sql) — Complete SQL API documentation
+
 

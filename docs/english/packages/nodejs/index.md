@@ -11,7 +11,7 @@ has_children: true
 
 [![npm](https://img.shields.io/npm/v/byterag-py.svg)](https://www.npmjs.com/package/byterag-py)
 
-Official Node.js bindings for DBX high-performance embedded database.
+Official Node.js bindings for ByteRAG high-performance embedded database.
 
 ## Key Features
 
@@ -66,4 +66,5 @@ db.close();
 ## License
 
 MIT License
+
 

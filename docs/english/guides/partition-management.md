@@ -23,7 +23,7 @@ Efficiently manage large tables with per-partition statistics, differential comp
 
 ## Overview
 
-DBX provides four synergy features alongside table partitioning:
+ByteRAG provides four synergy features alongside table partitioning:
 
 | Feature | Description | Automation |
 |---------|-------------|------------|
@@ -257,4 +257,5 @@ for i in 0..10000 {
 - [Compression Guide](compression) — Global compression settings
 - [Storage Layers](storage-layers) — 5-Tier architecture and partitioning relationship
 - [Scheduler Guide](scheduler) — Register custom scheduled jobs
+
 

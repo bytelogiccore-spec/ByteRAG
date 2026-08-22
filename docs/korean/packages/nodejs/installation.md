@@ -40,7 +40,7 @@ pnpm add byterag-py
 const { Database } = require('byterag-py');
 
 const db = Database.openInMemory();
-console.log('DBX Native loaded successfully!');
+console.log('ByteRAG Native loaded successfully!');
 db.close();
 ```
 
@@ -89,4 +89,5 @@ npm install
 ```bash
 node --version  # v16.0.0 이상 필요
 ```
+
 

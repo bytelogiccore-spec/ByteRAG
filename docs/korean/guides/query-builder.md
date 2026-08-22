@@ -15,7 +15,7 @@ nav_order: 37
 
 ## 1. 파라미터 바인딩 (Parameterized Queries)
 
-문자열 보간(String interpolation) 대신 파라미터 바인딩을 사용하면 SQL Injection을 방지하고 성능을 향상시킬 수 있습니다. DBX는 Positional 파라미터와 Named 파라미터를 모두 지원합니다.
+문자열 보간(String interpolation) 대신 파라미터 바인딩을 사용하면 SQL Injection을 방지하고 성능을 향상시킬 수 있습니다. ByteRAG는 Positional 파라미터와 Named 파라미터를 모두 지원합니다.
 
 ### Positional 바인딩 (`$1`, `$2`, ...)
 
@@ -115,5 +115,6 @@ let sum_results = db.query_builder()
 ## 다음 단계
 
 - [스키마 빌더](schema-builder) — 타입 안전한 테이블 스키마 생성
-- [SQL 레퍼런스](sql-reference) — DBX의 전체 SQL 지원 범위 확인
+- [SQL 레퍼런스](sql-reference) — ByteRAG의 전체 SQL 지원 범위 확인
+
 

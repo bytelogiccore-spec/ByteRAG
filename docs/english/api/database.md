@@ -7,7 +7,7 @@ parent: English
 
 # Database API
 
-Core database operations for DBX.
+Core database operations for ByteRAG.
 
 ---
 
@@ -365,4 +365,5 @@ match db.insert("users", b"key", b"value") {
 - [SQL API](sql) - SQL query execution
 - [CRUD Operations Guide](../guides/crud-operations) - Detailed CRUD guide
 - [Transactions Guide](../guides/transactions) - Transaction patterns
+
 

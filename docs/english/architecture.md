@@ -3,13 +3,13 @@ layout: default
 title: Architecture
 nav_order: 2
 parent: English
-description: "DBX 5-Tier Hybrid Storage architecture"
+description: "ByteRAG 5-Tier Hybrid Storage architecture"
 ---
 
 # Architecture
 {: .no_toc }
 
-Deep dive into DBX's 5-Tier Hybrid Storage architecture and MVCC transaction system.
+Deep dive into ByteRAG's 5-Tier Hybrid Storage architecture and MVCC transaction system.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -22,7 +22,7 @@ Deep dive into DBX's 5-Tier Hybrid Storage architecture and MVCC transaction sys
 
 ## 5-Tier Hybrid Storage
 
-DBX uses a sophisticated 5-tier architecture optimized for both OLTP and OLAP workloads:
+ByteRAG uses a sophisticated 5-tier architecture optimized for both OLTP and OLAP workloads:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -129,7 +129,7 @@ DBX uses a sophisticated 5-tier architecture optimized for both OLTP and OLAP wo
 
 ## MVCC Transaction System
 
-DBX implements Multi-Version Concurrency Control (MVCC) with Snapshot Isolation.
+ByteRAG implements Multi-Version Concurrency Control (MVCC) with Snapshot Isolation.
 
 ### Transaction Flow
 
@@ -174,7 +174,7 @@ struct VersionedValue {
 
 ## GPU Acceleration
 
-DBX optionally supports CUDA-based GPU acceleration for analytical queries.
+ByteRAG optionally supports CUDA-based GPU acceleration for analytical queries.
 
 ### Supported Operations
 
@@ -185,7 +185,7 @@ DBX optionally supports CUDA-based GPU acceleration for analytical queries.
 
 ### Hash Strategies
 
-DBX supports multiple GPU hash strategies:
+ByteRAG supports multiple GPU hash strategies:
 
 | Strategy | Performance | Use Case |
 |----------|-------------|----------|
@@ -283,4 +283,5 @@ Results
 - [Benchmarks](benchmarks) — See performance comparisons
 - [Examples](examples/quick-start) — Explore code examples
 - [API Documentation](https://docs.rs/byterag-core) — Full Rust API reference
+
 

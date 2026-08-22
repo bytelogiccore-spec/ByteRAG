@@ -9,7 +9,7 @@ nav_order: 4
 
 # SQL 가이드
 
-DBX는 표준 SQL을 지원합니다. Node.js에서 동기/비동기 모두 사용 가능합니다.
+ByteRAG는 표준 SQL을 지원합니다. Node.js에서 동기/비동기 모두 사용 가능합니다.
 
 ## 테이블 생성 (CREATE TABLE)
 
@@ -393,4 +393,5 @@ db.executeSql(`INSERT INTO users (name) VALUES ('${name}')`);
 - [고급 기능](advanced) - 트랜잭션, 암호화
 - [TypeScript](typescript) - 타입 정의
 - [API 레퍼런스](api-reference) - 전체 API
+
 

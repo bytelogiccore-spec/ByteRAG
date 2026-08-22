@@ -3,17 +3,17 @@ layout: default
 title: English
 nav_order: 2
 has_children: true
-description: "DBX — High-Performance Embedded Database"
+description: "ByteRAG — High-Performance Embedded Database"
 ---
 
-# DBX
+# ByteRAG
 {: .fs-9 }
 
 High-performance embedded database built on a 5-Tier Hybrid Storage architecture. Designed for HTAP (Hybrid Transactional/Analytical Processing) workloads, implemented in pure Rust.
 {: .fs-6 .fw-300 }
 
 [Get Started](getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[View on GitHub](https://github.com/bytelogiccore-spec/DBX){: .btn .fs-5 .mb-4 .mb-md-0 }
+[View on GitHub](https://github.com/bytelogiccore-spec/ByteRAG){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
@@ -65,4 +65,5 @@ let tx = db.begin_transaction()?;
 tx.insert("users", b"user:2", b"Bob")?;
 tx.commit()?;
 ```
+
 

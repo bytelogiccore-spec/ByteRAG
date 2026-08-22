@@ -7,7 +7,7 @@ nav_order: 15
 
 # Indexing Quick Start
 
-DBX에서 인덱스를 사용하는 가장 빠른 방법입니다.
+ByteRAG에서 인덱스를 사용하는 가장 빠른 방법입니다.
 
 ## 1. Bloom Filter 인덱스 생성
 
@@ -80,4 +80,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**Indexing Guide**](../guides/indexing.md) — 완전한 인덱싱 가이드
 - [**SQL Quick Start**](sql-quick-start.md) — SQL 쿼리 최적화
 - [**Quick Start**](quick-start.md) — 기본 CRUD
+
 

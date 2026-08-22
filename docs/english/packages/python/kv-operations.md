@@ -9,7 +9,7 @@ nav_order: 4
 
 # Key-Value Operations
 
-DBX can be used as a high-performance Key-Value store in addition to SQL.
+ByteRAG can be used as a high-performance Key-Value store in addition to SQL.
 
 ## Basic CRUD
 
@@ -200,4 +200,5 @@ db.flush()
 - [SQL Guide](sql-guide) - SQL usage
 - [Advanced](advanced) - Transactions, encryption
 - [API Reference](api-reference) - Complete API
+
 

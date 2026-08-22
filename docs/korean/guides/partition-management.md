@@ -23,7 +23,7 @@ nav_order: 27
 
 ## 개요
 
-DBX는 파티셔닝과 함께 4가지 시너지 기능을 제공합니다.
+ByteRAG는 파티셔닝과 함께 4가지 시너지 기능을 제공합니다.
 
 | 기능 | 설명 | 자동화 |
 |------|------|--------|
@@ -152,7 +152,7 @@ db.enable_auto_archive("orders", PartitionLifecycle {
 ```
 enable_auto_archive() 호출
     │
-    └─ [dbx-lifecycle-scheduler] 백그라운드 스레드 자동 기동
+    └─ [ByteRAG-lifecycle-scheduler] 백그라운드 스레드 자동 기동
             ↓ 매 1시간
         모든 파티션 나이 확인
         ├─ archive_after_days 경과 → ZSTD 9 압축 + Cold 티어 자동 적용
@@ -257,4 +257,5 @@ for i in 0..10000 {
 - [압축 가이드](compression) — 글로벌 압축 설정
 - [스토리지 계층](storage-layers) — 5-Tier 아키텍처와 파티셔닝의 관계
 - [스케줄러 가이드](scheduler) — 커스텀 스케줄 작업 등록
+
 

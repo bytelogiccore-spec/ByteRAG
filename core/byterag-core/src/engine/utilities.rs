@@ -92,6 +92,11 @@ impl Database {
     }
 
     /// Delta Store의 모든 데이터를 WOS로 flush합니다.
+    ///
+    /// For file-backed databases with a plain WAL, also synchronously writes a
+    /// checkpoint and truncates `wal.log` so only the checkpoint remains.
+    /// Callers that need durable cleanup must invoke `flush()` explicitly
+    /// (no idle-based trim).
     pub fn flush(&self) -> ByteRagResult<()> {
         match &self.delta {
             crate::engine::DeltaVariant::RowBased(_) => {
@@ -104,17 +109,27 @@ impl Database {
                 if let Some(ref w) = self.file_wos {
                     w.flush()?;
                 }
-                Ok(())
             }
             crate::engine::DeltaVariant::Columnar(_) => {
-                // Get all table names
                 let table_names = self.delta.table_names()?;
                 for table in table_names {
                     crate::engine::compaction::Compactor::bypass_flush(self, &table)?;
                 }
-                Ok(())
             }
         }
+        self.checkpoint_wal_after_flush()?;
+        Ok(())
+    }
+
+    /// Truncate the global WAL after a successful flush (file WAL only).
+    fn checkpoint_wal_after_flush(&self) -> ByteRagResult<()> {
+        if self.durability == crate::engine::DurabilityLevel::None {
+            return Ok(());
+        }
+        if let Some(wal) = &self.wal {
+            wal.checkpoint_and_truncate()?;
+        }
+        Ok(())
     }
 
     /// Get the total entry count (Delta + WOS) for a table.

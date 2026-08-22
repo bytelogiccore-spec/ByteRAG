@@ -3,13 +3,13 @@ layout: default
 title: Getting Started
 nav_order: 1
 parent: English
-description: "Quick start guide for DBX database"
+description: "Quick start guide for ByteRAG database"
 ---
 
 # Getting Started
 {: .no_toc }
 
-This guide will help you install DBX and run your first queries.
+This guide will help you install ByteRAG and run your first queries.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -24,7 +24,7 @@ This guide will help you install DBX and run your first queries.
 
 ### Rust
 
-Add DBX to your `Cargo.toml`:
+Add ByteRAG to your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -36,7 +36,7 @@ byterag-core = "0.2.0-beta"
 Install via NuGet or use `byterag-csharp` bindings:
 
 ```bash
-dotnet add package DBX.Client
+dotnet add package ByteRAG.Client
 ```
 
 ---
@@ -105,7 +105,7 @@ println!("Total users: {}", count);
 
 ## MVCC Transactions
 
-DBX supports ACID transactions with Snapshot Isolation:
+ByteRAG supports ACID transactions with Snapshot Isolation:
 
 ```rust
 use byterag_core::Database;
@@ -127,7 +127,7 @@ tx.commit()?;
 
 ## SQL Queries
 
-DBX supports standard SQL queries:
+ByteRAG supports standard SQL queries:
 
 ```rust
 use byterag_core::Database;
@@ -163,7 +163,7 @@ let results = db.execute_sql("SELECT id, age FROM users WHERE age > 28")?;
 
 ## Encryption
 
-DBX supports AES-256-GCM-SIV and ChaCha20-Poly1305 encryption:
+ByteRAG supports AES-256-GCM-SIV and ChaCha20-Poly1305 encryption:
 
 ```rust
 use byterag_core::Database;
@@ -213,4 +213,5 @@ if let Some(gpu) = db.gpu_manager() {
 - [Benchmarks](benchmarks) — See performance comparisons
 - [Examples](examples/quick-start) — Explore more code examples
 - [API Documentation](https://docs.rs/byterag-core) — Full Rust API reference
+
 

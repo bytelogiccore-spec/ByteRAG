@@ -1,6 +1,12 @@
-# Contributing to DBX
+---
+layout: default
+title: Contributing
+nav_order: 98
+parent: English
+---
+# Contributing to ByteRAG
 
-Thank you for your interest in contributing to DBX! We welcome contributions from the community.
+Thank you for your interest in Contributing to ByteRAG! We welcome contributions from the community.
 
 ## 📋 Table of Contents
 
@@ -28,7 +34,7 @@ If you find a bug, please open an issue on GitHub with:
 - A clear description of the problem
 - Steps to reproduce the issue
 - Expected vs. actual behavior
-- Your environment (OS, Rust version, DBX version)
+- Your environment (OS, Rust version, ByteRAG version)
 
 ### Suggesting Features
 
@@ -62,9 +68,8 @@ We welcome feature suggestions! Please open an issue with:
 
 ```bash
 # Clone the repository
-git clone https://github.com/ByteLogicStudio/DBX.git
-cd DBX
-
+git clone https://github.com/bytelogiccore-spec/ByteRAG.git
+cd ByteRAG
 # Build the project
 cargo build --workspace
 
@@ -78,11 +83,11 @@ cargo bench
 
 ### Build Optimization Tips (Recommended)
 
-DBX is a large and complex project. You can maximize your compilation speed with the following setups:
+ByteRAG is a large and complex project. You can maximize your compilation speed with the following setups:
 
 #### Windows Environment (MSVC)
 1. **Use LLD Linker**: The project's `.cargo/config.toml` is pre-configured to use `rust-lld.exe`.
-2. **Windows Defender Exclusions (Important)**: Exclude the `DBX` project folder and `~/.cargo` folder from real-time scanning. This prevents severe bottlenecks caused by Defender scanning thousands of temporary files during compilation.
+2. **Windows Defender Exclusions (Important)**: Exclude the `ByteRAG` project folder and `~/.cargo` folder from real-time scanning. This prevents severe bottlenecks caused by Defender scanning thousands of temporary files during compilation.
 3. **Disk I/O**: An NVMe SSD is strongly recommended for smooth and fast building.
 
 #### Linux and WSL2 Environment
@@ -96,7 +101,7 @@ DBX is a large and complex project. You can maximize your compilation speed with
 
 ## 📝 Contributor License Agreement (CLA)
 
-**By contributing to DBX, you agree to the following terms:**
+**By Contributing to ByteRAG, you agree to the following terms:**
 
 ### Grant of Copyright License
 
@@ -211,7 +216,7 @@ Fixes #456
 
 ## 🙏 Thank You!
 
-Your contributions make DBX better for everyone. We appreciate your time and effort!
+Your contributions make ByteRAG better for everyone. We appreciate your time and effort!
 
 **Questions?** Contact us at dev@bytelogic.studio
 
@@ -219,3 +224,5 @@ Your contributions make DBX better for everyone. We appreciate your time and eff
 
 **ByteLogic Studio**  
 Seoul, Republic of Korea
+
+

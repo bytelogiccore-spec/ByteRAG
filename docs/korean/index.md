@@ -3,17 +3,17 @@ layout: default
 title: 한국어
 nav_order: 3
 has_children: true
-description: "DBX — 고성능 임베디드 데이터베이스"
+description: "ByteRAG — 고성능 임베디드 데이터베이스"
 ---
 
-# DBX
+# ByteRAG
 {: .fs-9 }
 
 5-Tier 하이브리드 스토리지 아키텍처 기반 고성능 임베디드 데이터베이스. HTAP(하이브리드 트랜잭션/분석 처리) 워크로드를 위해 설계되었으며, 순수 Rust로 구현되었습니다.
 {: .fs-6 .fw-300 }
 
 [시작하기](getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[GitHub에서 보기](https://github.com/bytelogiccore-spec/DBX){: .btn .fs-5 .mb-4 .mb-md-0 }
+[GitHub에서 보기](https://github.com/bytelogiccore-spec/ByteRAG){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
@@ -65,4 +65,5 @@ let tx = db.begin_transaction()?;
 tx.insert("users", b"user:2", b"Bob")?;
 tx.commit()?;
 ```
+
 

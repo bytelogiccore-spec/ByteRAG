@@ -3,13 +3,13 @@ layout: default
 title: 아키텍처
 nav_order: 2
 parent: 한국어
-description: "DBX 5-Tier 하이브리드 스토리지 아키텍처"
+description: "ByteRAG 5-Tier 하이브리드 스토리지 아키텍처"
 ---
 
 # 아키텍처
 {: .no_toc }
 
-DBX의 5-Tier 하이브리드 스토리지 아키텍처와 MVCC 트랜잭션 시스템에 대해 심층적으로 알아봅니다.
+ByteRAG의 5-Tier 하이브리드 스토리지 아키텍처와 MVCC 트랜잭션 시스템에 대해 심층적으로 알아봅니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,7 +22,7 @@ DBX의 5-Tier 하이브리드 스토리지 아키텍처와 MVCC 트랜잭션 시
 
 ## 5-Tier 하이브리드 스토리지
 
-DBX는 OLTP와 OLAP 워크로드 모두에 최적화된 정교한 5계층 아키텍처를 사용합니다:
+ByteRAG는 OLTP와 OLAP 워크로드 모두에 최적화된 정교한 5계층 아키텍처를 사용합니다:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -128,7 +128,7 @@ DBX는 OLTP와 OLAP 워크로드 모두에 최적화된 정교한 5계층 아키
 
 ## MVCC 트랜잭션 시스템
 
-DBX는 스냅샷 격리(Snapshot Isolation) 기능이 포함된 다중 버전 동시성 제어(MVCC)를 구현합니다.
+ByteRAG는 스냅샷 격리(Snapshot Isolation) 기능이 포함된 다중 버전 동시성 제어(MVCC)를 구현합니다.
 
 ### 트랜잭션 흐름
 
@@ -173,7 +173,7 @@ struct VersionedValue {
 
 ## GPU 가속
 
-DBX는 분석 쿼리를 위해 선택적으로 CUDA 기반 GPU 가속을 지원합니다.
+ByteRAG는 분석 쿼리를 위해 선택적으로 CUDA 기반 GPU 가속을 지원합니다.
 
 ### 지원되는 작업
 
@@ -184,7 +184,7 @@ DBX는 분석 쿼리를 위해 선택적으로 CUDA 기반 GPU 가속을 지원�
 
 ### 해시 전략 (Hash Strategies)
 
-DBX는 여러 GPU 해시 전략을 지원합니다:
+ByteRAG는 여러 GPU 해시 전략을 지원합니다:
 
 | 전략 | 성능 | 사용 사례 |
 |----------|-------------|----------|
@@ -330,4 +330,6 @@ Delta Store 데이터를 Cache로 동기화
 - [벤치마크](benchmarks) — 성능 비교 확인
 - [예제](examples/quick-start) — 코드 예제 살펴보기
 - [API 문서](https://docs.rs/byterag-core) — 전체 Rust API 레퍼런스
+
+
 

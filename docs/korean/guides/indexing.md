@@ -8,14 +8,14 @@ nav_order: 27
 # 인덱싱 (Indexing)
 {: .no_toc }
 
-DBX는 Bloom Filter 기반의 인덱싱 시스템을 제공하여 데이터 조회 성능을 극대화합니다.
+ByteRAG는 Bloom Filter 기반의 인덱싱 시스템을 제공하여 데이터 조회 성능을 극대화합니다.
 {: .fs-6 .fw-300 }
 
 ---
 
 ## 개요
 
-DBX의 인덱스는 **확률적 자료구조(Bloom Filter)**를 사용하여 메모리 효율성을 극대화하면서도 조회 속도를 수백 배 향상시킵니다.
+ByteRAG의 인덱스는 **확률적 자료구조(Bloom Filter)**를 사용하여 메모리 효율성을 극대화하면서도 조회 속도를 수백 배 향상시킵니다.
 
 ### 주요 특징
 
@@ -84,4 +84,5 @@ db.rebuild_index("users")?;
 - [SQL 레퍼런스](sql-reference) — SQL 쿼리에서 인덱스 자동 활용
 - [GPU 가속](gpu-acceleration) — 대용량 인덱싱 데이터의 가속 처리
 - [저장소 계층](storage-layers) — 인덱스가 위치한 Tier 4 계층 이해
+
 

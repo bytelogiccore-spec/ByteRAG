@@ -51,6 +51,45 @@ impl Database {
         Ok(())
     }
 
+    /// Export a durable `.brdb` pack (v1 whole-blob). Calls [`Self::flush`] first.
+    pub fn export_to_file<P: AsRef<Path>>(&self, path: P) -> ByteRagResult<()> {
+        self.export_to_file_version(path, crate::storage::brdb::FORMAT_VERSION_V1)
+    }
+
+    /// Export `.brdb` with explicit format version (1 = whole blob, 2 = seekable frames).
+    pub fn export_to_file_version<P: AsRef<Path>>(
+        &self,
+        path: P,
+        format_version: u32,
+    ) -> ByteRagResult<()> {
+        self.flush()?;
+        let snapshot = self.create_snapshot()?;
+        let bytes = bincode::serialize(&snapshot)
+            .map_err(|e| ByteRagError::Serialization(e.to_string()))?;
+        match format_version {
+            crate::storage::brdb::FORMAT_VERSION_V1 => {
+                crate::storage::brdb::write_v1(path.as_ref(), &bytes)
+            }
+            crate::storage::brdb::FORMAT_VERSION_V2 => {
+                crate::storage::brdb::write_v2(path.as_ref(), &bytes)
+            }
+            v => Err(ByteRagError::InvalidOperation {
+                message: format!("unsupported .brdb version {v}"),
+                context: "export_to_file_version".into(),
+            }),
+        }
+    }
+
+    /// Open a database from a `.brdb` pack into a new in-memory instance.
+    pub fn open_from_file<P: AsRef<Path>>(path: P) -> ByteRagResult<Self> {
+        let bytes = crate::storage::brdb::read_snapshot_bytes(path.as_ref())?;
+        let snapshot: DatabaseSnapshot = bincode::deserialize(&bytes)
+            .map_err(|e| ByteRagError::Serialization(e.to_string()))?;
+        let db = Self::open_in_memory()?;
+        db.restore_snapshot(snapshot)?;
+        Ok(db)
+    }
+
     /// Load database from file into in-memory database
     ///
     /// Creates a new in-memory DB and loads all data from file.
@@ -108,21 +147,21 @@ impl Database {
         snapshot.indexes = indexes.clone();
         drop(indexes);
 
-        // 3. Capture table data
-        // Use row_counters to get table list (more reliable than WOS table_names for in-memory)
-        let table_list: Vec<String> = self
-            .row_counters
-            .iter()
-            .map(|entry| entry.key().clone())
-            .collect();
+        // 3. Capture table data — prefer table_names() (delta + WOS)
+        let mut table_list = self.table_names()?;
+        for entry in self.row_counters.iter() {
+            let t = entry.key().clone();
+            if !table_list.contains(&t) {
+                table_list.push(t);
+            }
+        }
 
         for table_name in table_list {
-            // Skip metadata tables
             if table_name.starts_with("__meta__") {
                 continue;
             }
 
-            let entries = self.wos_for_table(&table_name).scan(&table_name, ..)?;
+            let entries = self.scan(&table_name)?;
             snapshot.tables.insert(table_name, TableData { entries });
         }
 
@@ -210,14 +249,37 @@ mod tests {
     }
 
     #[test]
-    fn test_file_based_db_rejects_save() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let db = Database::open(temp_dir.path()).unwrap();
+    fn test_brdb_export_open_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let pack = dir.path().join("store.brdb");
+        {
+            let db = Database::open(&dir.path().join("live")).unwrap();
+            db.insert("users", b"u1", b"Alice").unwrap();
+            db.insert("users", b"u2", b"Bob").unwrap();
+            db.export_to_file(&pack).unwrap();
+            let wal = std::fs::metadata(dir.path().join("live").join("wal.log"))
+                .unwrap()
+                .len();
+            assert!(wal < 4096, "export should flush+trim WAL, size={wal}");
+        }
+        let db = Database::open_from_file(&pack).unwrap();
+        assert_eq!(db.get("users", b"u1").unwrap().unwrap(), b"Alice");
+        assert_eq!(db.get("users", b"u2").unwrap().unwrap(), b"Bob");
+    }
 
-        let temp_file = tempfile::NamedTempFile::new().unwrap();
-        let result = db.save_to_file(temp_file.path());
-
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("in-memory"));
+    #[test]
+    fn test_brdb_v2_export_open_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let pack = dir.path().join("store-v2.brdb");
+        {
+            let db = Database::open(&dir.path().join("live")).unwrap();
+            for i in 0..100 {
+                db.insert("t", format!("k{i}").as_bytes(), b"v").unwrap();
+            }
+            db.export_to_file_version(&pack, crate::storage::brdb::FORMAT_VERSION_V2)
+                .unwrap();
+        }
+        let db = Database::open_from_file(&pack).unwrap();
+        assert_eq!(db.count("t").unwrap(), 100);
     }
 }

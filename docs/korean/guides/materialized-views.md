@@ -64,7 +64,7 @@ fn main() -> byterag_core::ByteRagResult<()> {
 
 ## 구체화된 뷰 사용
 
-구체화된 뷰가 생성되면, 동일한 SQL 쿼리를 실행할 때 DBX 엔진이 내부적으로 캐시를 확인합니다.
+구체화된 뷰가 생성되면, 동일한 SQL 쿼리를 실행할 때 ByteRAG 엔진이 내부적으로 캐시를 확인합니다.
 
 ```rust
 // 일반 SELECT 문을 실행하면, sales_summary 뷰에 저장된 캐시가 있으면 이를 즉시 반환합니다.
@@ -107,4 +107,5 @@ DROP MATERIALIZED VIEW sales_summary
 - [SQL 레퍼런스](sql-reference) — 지원되는 SQL 구문 확인
 - [스트리밍 수집](streaming-ingestion) — 실시간 데이터 파이프라인 구축
 - [컬럼형 캐시](storage-layers) — 분석 쿼리 최적화 계층 이해
+
 

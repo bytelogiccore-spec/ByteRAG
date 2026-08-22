@@ -9,7 +9,7 @@ has_children: true
 
 # C/C++ — byterag-ffi
 
-Official C/C++ FFI (Foreign Function Interface) bindings for DBX high-performance embedded database.
+Official C/C++ FFI (Foreign Function Interface) bindings for ByteRAG high-performance embedded database.
 
 ## Key Features
 
@@ -25,7 +25,7 @@ Official C/C++ FFI (Foreign Function Interface) bindings for DBX high-performanc
 ### C Example
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 
 int main() {
@@ -64,13 +64,13 @@ int main() {
 ### C++ Example
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 #include <string>
 
 int main() {
     // RAII wrapper
-    dbx::Database db = dbx::Database::openInMemory();
+    ByteRAG::Database db = ByteRAG::Database::openInMemory();
     
     // KV operations
     db.insert("users", "user:1", "Alice");
@@ -112,4 +112,5 @@ int main() {
 ## License
 
 MIT License
+
 

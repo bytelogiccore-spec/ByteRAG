@@ -1,6 +1,12 @@
+---
+layout: default
+title: Third-Party Licenses
+nav_order: 99
+parent: English
+---
 # Third-Party Licenses
 
-DBX uses the following open-source libraries. We are grateful to their maintainers and contributors.
+ByteRAG uses the following open-source libraries. We are grateful to their maintainers and contributors.
 
 ---
 
@@ -184,3 +190,5 @@ See: https://www.apache.org/licenses/LICENSE-2.0
 ---
 
 *Last updated: 2026-04-03 (v0.2.0-beta)*
+
+

@@ -28,7 +28,7 @@ C++ 래퍼는 RAII 패턴과 예외 처리를 제공합니다.
 
 **예제:**
 ```cpp
-auto db = dbx::Database::open("mydb.db");
+auto db = ByteRAG::Database::open("mydb.db");
 ```
 
 #### `Database::openInMemory()`
@@ -41,7 +41,7 @@ auto db = dbx::Database::open("mydb.db");
 
 **예제:**
 ```cpp
-auto db = dbx::Database::openInMemory();
+auto db = ByteRAG::Database::openInMemory();
 ```
 
 ### Key-Value 메서드
@@ -195,7 +195,7 @@ C++ 래퍼는 자동 리소스 관리를 제공합니다:
 
 ```cpp
 {
-    auto db = dbx::Database::open("mydb.db");
+    auto db = ByteRAG::Database::open("mydb.db");
     db.insert("users", "user:1", "Alice");
     // 자동으로 flush() 및 close() 호출
 }
@@ -207,7 +207,7 @@ C++ 래퍼는 자동 리소스 관리를 제공합니다:
 
 ```cpp
 try {
-    auto db = dbx::Database::open("mydb.db");
+    auto db = ByteRAG::Database::open("mydb.db");
     db.insert("users", "user:1", "Alice");
 } catch (const std::runtime_error& e) {
     std::cerr << "Error: " << e.what() << std::endl;
@@ -217,14 +217,14 @@ try {
 ## 완전한 예제
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 #include <exception>
 
 int main() {
     try {
         // 데이터베이스 열기
-        auto db = dbx::Database::open("example.db");
+        auto db = ByteRAG::Database::open("example.db");
         
         // 트랜잭션 시작
         auto tx = db.beginTransaction();
@@ -264,4 +264,5 @@ int main() {
 - [SQL 가이드](sql-guide) - SQL 사용법
 - [KV 작업](kv-operations) - Key-Value 작업
 - [실전 예제](examples) - 더 많은 예제
+
 

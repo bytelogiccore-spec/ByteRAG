@@ -8,7 +8,7 @@ parent: 한국어
 # 언어 바인딩
 {: .no_toc }
 
-DBX는 고성능 임베디드 데이터베이스를 선호하는 개발 환경에서 사용할 수 있도록 다양한 프로그래밍 언어에 대한 공식 바인딩을 제공합니다.
+ByteRAG는 고성능 임베디드 데이터베이스를 선호하는 개발 환경에서 사용할 수 있도록 다양한 프로그래밍 언어에 대한 공식 바인딩을 제공합니다.
 {: .fs-6 .fw-300 }
 
 ---
@@ -31,7 +31,7 @@ with Database("my_database.db") as db:
 RAII 패턴과 고성능 배치 작업을 지원하는 현대적인 .NET 바인딩입니다.
 
 ```csharp
-using DBX.Client;
+using ByteRAG.Client;
 using (var db = new DbxDatabase("./my_database")) {
     db.Insert("users", key, value);
     byte[] result = db.Get("users", key);
@@ -44,8 +44,8 @@ using (var db = new DbxDatabase("./my_database")) {
 저수준 C API와 현대적인 C++17 래퍼를 제공합니다.
 
 ```cpp
-#include "dbx.hpp"
-using namespace dbx;
+#include "ByteRAG.hpp"
+using namespace ByteRAG;
 
 auto db = Database::openInMemory();
 db.insert("users", "user:1", "Alice");
@@ -90,4 +90,6 @@ db.insert('users', Buffer.from('user:1'), Buffer.from('Alice'));
 - [시작하기](../getting-started) — Rust 설치 가이드
 - [저장소 계층](storage-layers) — 5계층 아키텍처 이해
 - [벤치마크](../benchmarks) — 상세 성능 비교 확인
+
+
 

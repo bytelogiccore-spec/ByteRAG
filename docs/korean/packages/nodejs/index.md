@@ -11,7 +11,7 @@ has_children: true
 
 [![npm](https://img.shields.io/npm/v/byterag-py.svg)](https://www.npmjs.com/package/byterag-py)
 
-고성능 임베디드 데이터베이스 DBX의 공식 Node.js 바인딩입니다.
+고성능 임베디드 데이터베이스 ByteRAG의 공식 Node.js 바인딩입니다.
 
 ## 주요 기능
 
@@ -67,4 +67,5 @@ db.close();
 ## 라이선스
 
 MIT License
+
 

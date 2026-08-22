@@ -11,7 +11,7 @@ DBX는 ZSTD 압축을 지원하여 저장 공간을 절약하고 I/O 성능을 �
 
 ## Overview
 
-DBX 압축의 주요 특징:
+ByteRAG 압축의 주요 특징:
 - **ZSTD 알고리즘**: 빠른 압축/해제 속도와 높은 압축률
 - **투명한 압축**: 자동 압축/해제로 애플리케이션 코드 변경 불필요
 - **조정 가능한 레벨**: 압축률과 속도 간 트레이드오프 조정
@@ -129,7 +129,7 @@ use byterag_core::{Database, ByteRagResult};
 use std::time::Instant;
 
 fn main() -> ByteRagResult<()> {
-    println!("=== DBX Compression Example ===\n");
+    println!("=== ByteRAG Compression Example ===\n");
     
     let db = Database::open("./compression_test".as_ref())?;
     
@@ -270,4 +270,5 @@ db.set_compression_level("data", 1)?;  // 레벨 3 → 1
 - [Encryption](./encryption.md) - 압축과 암호화 함께 사용
 - [GPU Acceleration](./gpu-acceleration.md) - 압축된 데이터의 GPU 처리
 - [CRUD Operations](./crud-operations.md) - 기본 데이터 작업
+
 

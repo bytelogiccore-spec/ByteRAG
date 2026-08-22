@@ -9,7 +9,7 @@ nav_order: 3
 
 # SQL Guide
 
-DBX supports standard SQL. You can use it via the `executeSql` method in Node.js.
+ByteRAG supports standard SQL. You can use it via the `executeSql` method in Node.js.
 
 ## CREATE TABLE
 
@@ -202,4 +202,5 @@ tx.commit();
 - [KV Operations](kv-operations) - Key-Value operations
 - [Advanced](advanced) - Transactions, performance
 - [API Reference](api-reference) - Complete API
+
 

@@ -3,13 +3,13 @@ layout: default
 title: GPU 가속
 parent: 한국어
 nav_order: 24
-description: "DBX의 분석 쿼리를 위한 CUDA 기반 GPU 가속"
+description: "ByteRAG의 분석 쿼리를 위한 CUDA 기반 GPU 가속"
 ---
 
 # GPU 가속
 {: .no_toc }
 
-CUDA를 사용한 DBX의 GPU 가속에 대한 전체 가이드입니다.
+CUDA를 사용한 ByteRAG의 GPU 가속에 대한 전체 가이드입니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,7 +22,7 @@ CUDA를 사용한 DBX의 GPU 가속에 대한 전체 가이드입니다.
 
 ## 개요
 
-DBX는 분석 쿼리를 위해 선택적으로 **CUDA 기반 GPU 가속**을 지원하며, 대규모 데이터셋에 대해 상당한 성능 향상을 제공합니다.
+ByteRAG는 분석 쿼리를 위해 선택적으로 **CUDA 기반 GPU 가속**을 지원하며, 대규모 데이터셋에 대해 상당한 성능 향상을 제공합니다.
 
 ### 성능 향상 (1000만 행 기준)
 
@@ -83,7 +83,7 @@ fn main() -> byterag_core::ByteRagResult<()> {
 
 ## 해시 전략 (Hash Strategies)
 
-DBX는 작업 특성에 따라 세 가지 GPU 해시 전략을 제공합니다:
+ByteRAG는 작업 특성에 따라 세 가지 GPU 해시 전략을 제공합니다:
 
 | 전략 | 특징 | 권장 사례 |
 |----------|-------------|--------|
@@ -170,4 +170,5 @@ let results = db.execute_sql("
 - [SQL 레퍼런스](sql-reference) — SQL 쿼리에서 GPU 가속 활용
 - [아키텍처 가이드](../architecture) — 데이터 흐름 이해
 - [벤치마크](../benchmarks) — 상세 성능 비교 확인
+
 

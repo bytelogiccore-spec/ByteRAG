@@ -11,7 +11,7 @@ has_children: true
 
 [![NuGet](https://img.shields.io/nuget/v/DBX.Dotnet.svg)](https://www.nuget.org/packages/DBX.Dotnet/)
 
-Official .NET bindings for DBX high-performance embedded database.
+Official .NET bindings for ByteRAG high-performance embedded database.
 
 ## Key Features
 
@@ -58,10 +58,11 @@ using (var db = Database.OpenInMemory())
 
 ## Version Info
 
-- **Current Version**: {{ site.dbx_version }}
+- **Current Version**: {{ site.byterag_version }}
 - **.NET Requirements**: .NET Standard 2.0+ (.NET Framework 4.6.1+, .NET Core 2.0+, .NET 5+)
 - **Platform**: Windows x64 (Linux/macOS planned)
 
 ## License
 
 MIT License
+

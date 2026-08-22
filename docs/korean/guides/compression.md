@@ -8,14 +8,14 @@ nav_order: 26
 # 압축 (Compression)
 {: .no_toc }
 
-DBX는 ZSTD(Zstandard) 알고리즘을 지원하여 저장 공간을 효율적으로 사용하고 디스크 I/O 성능을 최적화합니다.
+ByteRAG는 ZSTD(Zstandard) 알고리즘을 지원하여 저장 공간을 효율적으로 사용하고 디스크 I/O 성능을 최적화합니다.
 {: .fs-6 .fw-300 }
 
 ---
 
 ## 개요
 
-DBX의 압축은 **투명(Transparent)**하게 작동합니다. 즉, 데이터 삽입 시 자동으로 압축되고, 조회 시 자동으로 해제되므로 애플리케이션 코드를 수정할 필요가 없습니다.
+ByteRAG의 압축은 **투명(Transparent)**하게 작동합니다. 즉, 데이터 삽입 시 자동으로 압축되고, 조회 시 자동으로 해제되므로 애플리케이션 코드를 수정할 필요가 없습니다.
 
 ### 주요 특징
 
@@ -88,4 +88,5 @@ db.set_compression_level("archives", 15)?;
 - [암호화 가이드](encryption) — 압축과 보안을 동시에 적용하기
 - [저장소 계층](storage-layers) — 5계층 아키텍처에서 압축이 작동하는 위치
 - [GPU 가속](gpu-acceleration) — 압축된 데이터의 병렬 처리 활용
+
 

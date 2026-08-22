@@ -3,13 +3,13 @@ layout: default
 title: Storage Layers
 parent: English
 nav_order: 23
-description: "Understanding DBX's 5-Tier Hybrid Storage architecture"
+description: "Understanding ByteRAG's 5-Tier Hybrid Storage architecture"
 ---
 
 # Storage Layers
 {: .no_toc }
 
-Deep dive into DBX's 5-Tier Hybrid Storage architecture.
+Deep dive into ByteRAG's 5-Tier Hybrid Storage architecture.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -22,7 +22,7 @@ Deep dive into DBX's 5-Tier Hybrid Storage architecture.
 
 ## Overview
 
-DBX uses a sophisticated **5-Tier Hybrid Storage** architecture designed to optimize both OLTP (transactional) and OLAP (analytical) workloads.
+ByteRAG uses a sophisticated **5-Tier Hybrid Storage** architecture designed to optimize both OLTP (transactional) and OLAP (analytical) workloads.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -622,4 +622,5 @@ let results = db.execute_sql(
 - [Transactions](transactions) — MVCC transactions
 - [SQL Reference](sql-reference) — Analytical queries
 - [Performance Benchmarks](../benchmarks) — Optimize storage
+
 

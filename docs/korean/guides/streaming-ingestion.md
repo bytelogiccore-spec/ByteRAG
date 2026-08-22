@@ -9,7 +9,7 @@ description: "고성능 실시간 데이터 파이프라인 구축 가이드"
 # 스트리밍 수집 (Streaming Ingestion)
 {: .no_toc }
 
-스트리밍 수집은 외부 데이터 소스나 실시간 이벤트 스트림으로부터 DBX로 데이터를 끊김 없이 흘려보내는 고성능 파이프라인 기능입니다.
+스트리밍 수집은 외부 데이터 소스나 실시간 이벤트 스트림으로부터 ByteRAG로 데이터를 끊김 없이 흘려보내는 고성능 파이프라인 기능입니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,7 +22,7 @@ description: "고성능 실시간 데이터 파이프라인 구축 가이드"
 
 ## 개요
 
-DBX의 **StreamIngester**는 배치 처리를 최적화하여 쓰기 성능을 극대화합니다. 개별 `insert()` 호출보다 훨씬 높은 처리량(Throughput)을 제공하며, CDC(Change Data Capture) 패턴을 지원합니다.
+ByteRAG의 **StreamIngester**는 배치 처리를 최적화하여 쓰기 성능을 극대화합니다. 개별 `insert()` 호출보다 훨씬 높은 처리량(Throughput)을 제공하며, CDC(Change Data Capture) 패턴을 지원합니다.
 
 ### 주요 특징
 - **MPSC 파이프라인**: 멀티 프로듀서-싱글 컨슈머 모델로 여러 소스에서 안전하게 수집합니다.
@@ -107,4 +107,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [CRUD 작업](crud-operations) — 일반적인 데이터 삽입 방법
 - [구체화된 뷰](materialized-views) — 수집된 데이터에 대한 실시간 분석 뷰 구축
 - [DB 설정](db-config) — 내구성(Durability) 및 동기화 설정 최적화
+
 

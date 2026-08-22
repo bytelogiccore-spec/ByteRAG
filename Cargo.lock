@@ -471,7 +471,7 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "byterag-benchmarks"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "arrow",
  "byterag-core",
@@ -486,7 +486,7 @@ dependencies = [
 
 [[package]]
 name = "byterag-core"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "aes-gcm-siv",
  "ahash 0.8.12",
@@ -528,7 +528,7 @@ dependencies = [
 
 [[package]]
 name = "byterag-csharp"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "byterag-core",
  "csbindgen",
@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "byterag-examples"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "arrow",
  "byterag-core",
@@ -552,7 +552,7 @@ dependencies = [
 
 [[package]]
 name = "byterag-ffi"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "byterag-core",
  "libc",
@@ -560,7 +560,7 @@ dependencies = [
 
 [[package]]
 name = "byterag-node"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "byterag-core",
  "napi",
@@ -570,7 +570,7 @@ dependencies = [
 
 [[package]]
 name = "byterag-py"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "byterag-core",
  "pyo3",
@@ -578,7 +578,7 @@ dependencies = [
 
 [[package]]
 name = "byterag-tests"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "arrow",
  "byterag-core",

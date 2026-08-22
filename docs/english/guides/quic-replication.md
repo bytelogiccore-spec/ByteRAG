@@ -7,7 +7,7 @@ nav_order: 25
 
 # QUIC Distributed Replication
 
-DBX supports real network replication between processes using AWS's `s2n-quic` library.
+ByteRAG supports real network replication between processes using AWS's `s2n-quic` library.
 
 ---
 
@@ -38,8 +38,8 @@ let config = DbConfig::default();
 let config = DbConfig {
     replication: ReplicationConfig::quic(
         "0.0.0.0:7878",       // address this node binds to
-        "/etc/dbx/cert.pem",  // TLS certificate
-        "/etc/dbx/key.pem",   // TLS private key
+        "/etc/ByteRAG/cert.pem",  // TLS certificate
+        "/etc/ByteRAG/key.pem",   // TLS private key
         3,                     // cluster node count (for quorum)
     ),
     ..Default::default()
@@ -60,9 +60,9 @@ let transport = config.replication.build_transport_async(tx).await?;
 use byterag_core::replication::transport::quic::generate_self_signed_cert;
 use std::path::Path;
 
-let (cert, key) = generate_self_signed_cert(Path::new("/tmp/dbx-certs"))?;
-// cert = /tmp/dbx-certs/cert.pem
-// key  = /tmp/dbx-certs/key.pem
+let (cert, key) = generate_self_signed_cert(Path::new("/tmp/ByteRAG-certs"))?;
+// cert = /tmp/ByteRAG-certs/cert.pem
+// key  = /tmp/ByteRAG-certs/key.pem
 ```
 
 Or generate with openssl CLI:
@@ -90,8 +90,8 @@ use std::path::Path;
 // Start server (receiving node)
 let (server_node, handle) = QuicNode::server(
     "0.0.0.0:7878",
-    Path::new("/etc/dbx/cert.pem"),
-    Path::new("/etc/dbx/key.pem"),
+    Path::new("/etc/ByteRAG/cert.pem"),
+    Path::new("/etc/ByteRAG/key.pem"),
 ).await?;
 tokio::spawn(handle);
 
@@ -103,7 +103,7 @@ if let Some(msg) = server_node.try_recv().await {
 // Connect client (sending node)
 let (client_node, handle) = QuicNode::client(
     "10.0.0.2:7878",
-    Path::new("/etc/dbx/ca-cert.pem"),
+    Path::new("/etc/ByteRAG/ca-cert.pem"),
 ).await?;
 tokio::spawn(handle);
 
@@ -144,4 +144,5 @@ Run the same code on each server, varying only the `bind_addr`.
 |------|------|
 | `replication/transport.rs` | Transport trait, ReplicationConfig, QuicTransport |
 | `replication/transport.rs::quic` | QuicNode server/client, certificate helper |
+
 

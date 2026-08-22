@@ -7,7 +7,7 @@ nav_order: 14
 
 # Compression Quick Start
 
-DBX에서 압축을 사용하는 가장 빠른 방법입니다.
+ByteRAG에서 압축을 사용하는 가장 빠른 방법입니다.
 
 ## 1. 압축 활성화
 
@@ -91,4 +91,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**Compression Guide**](../guides/compression.md) — 완전한 압축 가이드
 - [**Encryption**](encryption.md) — 데이터 암호화
 - [**Quick Start**](quick-start.md) — 기본 CRUD
+
 

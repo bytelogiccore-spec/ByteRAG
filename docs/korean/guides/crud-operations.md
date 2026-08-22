@@ -3,13 +3,13 @@ layout: default
 title: CRUD 작업
 parent: 한국어
 nav_order: 20
-description: "DBX의 생성, 조회, 수정, 삭제 작업에 대한 전체 가이드"
+description: "ByteRAG의 생성, 조회, 수정, 삭제 작업에 대한 전체 가이드"
 ---
 
 # CRUD 작업
 {: .no_toc }
 
-DBX에서 생성(Create), 조회(Read), 수정(Update), 삭제(Delete) 작업을 수행하는 방법에 대한 종합 가이드입니다.
+ByteRAG에서 생성(Create), 조회(Read), 수정(Update), 삭제(Delete) 작업을 수행하는 방법에 대한 종합 가이드입니다.
 {: .fs-6 .fw-300 }
 
 ## 목차
@@ -22,7 +22,7 @@ DBX에서 생성(Create), 조회(Read), 수정(Update), 삭제(Delete) 작업을
 
 ## 개요
 
-DBX는 기본적인 데이터베이스 작업을 위해 단순하고 효율적인 API를 제공합니다. 모든 CRUD 작업은 `Database` 인스턴스를 통해 수행되며, 단일 레코드 작업과 배치(batch) 작업을 모두 지원합니다.
+ByteRAG는 기본적인 데이터베이스 작업을 위해 단순하고 효율적인 API를 제공합니다. 모든 CRUD 작업은 `Database` 인스턴스를 통해 수행되며, 단일 레코드 작업과 배치(batch) 작업을 모두 지원합니다.
 
 ### 주요 특징
 
@@ -251,7 +251,7 @@ fn main() -> byterag_core::ByteRagResult<()> {
 
 ### Delta Store 캐싱
 
-DBX는 핫 데이터를 위해 인메모리 Delta Store를 사용합니다:
+ByteRAG는 핫 데이터를 위해 인메모리 Delta Store를 사용합니다:
 
 ```rust
 use byterag_core::Database;
@@ -413,4 +413,5 @@ tx.commit()?;
 - [트랜잭션 가이드](transactions) — MVCC 트랜잭션 알아보기
 - [SQL 레퍼런스](sql-reference) — 복잡한 쿼리를 위한 SQL 사용
 - [API 레퍼런스](../api/database) — 전체 API 문서
+
 

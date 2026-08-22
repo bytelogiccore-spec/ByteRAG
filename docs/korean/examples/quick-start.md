@@ -7,7 +7,7 @@ nav_order: 11
 
 # Quick Start
 
-5분 안에 DBX 시작하기 — 가장 빠른 시작 가이드입니다.
+5분 안에 ByteRAG 시작하기 — 가장 빠른 시작 가이드입니다.
 
 ## 1. 데이터베이스 열기
 
@@ -76,4 +76,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**CRUD Operations Guide**](../guides/crud-operations.md) — 완전한 CRUD 가이드
 - [**SQL Quick Start**](sql-quick-start.md) — SQL 기본 사용법
 - [**Transactions**](../guides/transactions.md) — 트랜잭션 사용법
+
 

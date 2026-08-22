@@ -211,7 +211,7 @@ except:
 
 ### `ByteRagError`
 
-Base class for all DBX-related exceptions.
+Base class for all ByteRAG-related exceptions.
 
 **Example:**
 ```python
@@ -262,4 +262,5 @@ class Database:
 - [SQL Guide](sql-guide) - SQL usage
 - [KV Operations](kv-operations) - Key-Value operations
 - [Examples](examples) - Real-world examples
+
 

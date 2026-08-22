@@ -21,7 +21,7 @@ Opens a file-based database.
 
 **Example:**
 ```cpp
-auto db = dbx::Database::open("mydb.db");
+auto db = ByteRAG::Database::open("mydb.db");
 ```
 
 #### `Database::openInMemory()`
@@ -30,7 +30,7 @@ Opens an in-memory database.
 
 **Example:**
 ```cpp
-auto db = dbx::Database::openInMemory();
+auto db = ByteRAG::Database::openInMemory();
 ```
 
 ### Key-Value Methods
@@ -93,7 +93,7 @@ tx.commit();
 
 ```cpp
 {
-    auto db = dbx::Database::open("mydb.db");
+    auto db = ByteRAG::Database::open("mydb.db");
     db.insert("users", "user:1", "Alice");
     // Automatically flush() and close()
 }
@@ -103,4 +103,5 @@ tx.commit();
 
 - [C API](c-api) - C function reference
 - [Examples](examples) - More examples
+
 

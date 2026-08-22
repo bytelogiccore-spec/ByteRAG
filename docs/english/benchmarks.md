@@ -3,13 +3,13 @@ layout: default
 title: Benchmarks
 nav_order: 3
 parent: English
-description: "DBX performance benchmarks"
+description: "ByteRAG performance benchmarks"
 ---
 
 # Benchmarks
 {: .no_toc }
 
-Performance benchmarks comparing DBX against other embedded databases.
+Performance benchmarks comparing ByteRAG against other embedded databases.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -22,11 +22,11 @@ Performance benchmarks comparing DBX against other embedded databases.
 
 ## Executive Summary
 
-DBX is a high-performance embedded database engine written in pure Rust. **v0.2.0-beta achieved 1st place in all major operations** (INSERT, GET, SCAN).
+ByteRAG is a high-performance embedded database engine written in pure Rust. **v0.2.0-beta achieved 1st place in all major operations** (INSERT, GET, SCAN).
 
 ### Latest Benchmarks (v0.2.0-beta, 10,000 Records)
 
-| Operation | DBX (Fast-Path) | SQLite | Sled | Redb | Rank |
+| Operation | ByteRAG (Fast-Path) | SQLite | Sled | Redb | Rank |
 |-----------|-----------------|--------|------|------|------|
 | **SCAN (Count)** | **51µs** 🥇 | 340µs | 4.64ms | 2.08ms | **#1** |
 | **INSERT** | **25.21ms** 🥇 | 29.4ms | 56.6ms | 54.05ms | **#1** |
@@ -51,7 +51,7 @@ DBX is a high-performance embedded database engine written in pure Rust. **v0.2.
 - GET: **107% faster (2x)**
 - SCAN: **190% faster (2.9x)**
 
-**Version**: DBX v0.2.0-beta
+**Version**: ByteRAG v0.2.0-beta
 **Test Date**: April 3, 2026
 **Report Type**: Official Performance Analysis
 
@@ -83,7 +83,7 @@ DBX is a high-performance embedded database engine written in pure Rust. **v0.2.
 
 | Database | Version | Language | Features |
 |----------|---------|----------|----------|
-| **DBX** | 0.2.0-beta | Pure Rust | 5-Tier Hybrid Storage, MVCC |
+| **ByteRAG** | 0.2.0-beta | Pure Rust | 5-Tier Hybrid Storage, MVCC |
 | **SQLite** | 0.32 (rusqlite) | C (bundled) | Industry-standard embedded DB |
 | **Sled** | 0.34 | Pure Rust | Lock-free B+ tree |
 | **Redb** | 2.1 | Pure Rust | LMDB-inspired, file-only |
@@ -102,7 +102,7 @@ DBX is a high-performance embedded database engine written in pure Rust. **v0.2.
 
 ### Fair Comparison Conditions
 
-#### DBX Configuration
+#### ByteRAG Configuration
 
 ```rust
 // Default features enabled
@@ -116,13 +116,13 @@ durability = DurabilityLevel::None
 
 1. **Transaction/Batch Mode**
    - Fair comparison using batch commits instead of individual INSERTs
-   - DBX: `begin()` → `insert()` × N → `commit()`
+   - ByteRAG: `begin()` → `insert()` × N → `commit()`
    - SQLite: `unchecked_transaction()` → `execute()` × N → `commit()`
    - Sled: `insert()` × N → `flush()`
    - Redb: `begin_write()` → `insert()` × N → `commit()`
 
 2. **WAL (Write-Ahead Logging) Disabled**
-   - DBX: `durability = DurabilityLevel::None`
+   - ByteRAG: `durability = DurabilityLevel::None`
    - SQLite: `PRAGMA synchronous = OFF`
    - Sled: Default settings (flush-based)
    - Redb: Default settings (transaction-based)
@@ -138,42 +138,42 @@ durability = DurabilityLevel::None
 
 ### INSERT Performance (10,000 records)
 
-| Database | Average Time | Std Dev | Throughput (rec/sec) | vs DBX |
+| Database | Average Time | Std Dev | Throughput (rec/sec) | vs ByteRAG |
 |----------|--------------|---------|----------------------|--------|
-| **DBX** | **25.21ms** | ±0.20ms | **396,668** | **1.0× (baseline)** |
+| **ByteRAG** | **25.21ms** | ±0.20ms | **396,668** | **1.0× (baseline)** |
 | SQLite | 29.4ms | ±0.38ms | 340,136 | **0.85× (14% slower)** |
 | Redb | 54.05ms | ±0.72ms | 185,015 | **0.46× (114% slower)** |
 | Sled | 56.6ms | ±1.55ms | 176,678 | **0.44× (124% slower)** |
 
-**DBX Advantages**:
+**ByteRAG Advantages**:
 - ✅ **Faster than all competitors**
 - ✅ 14% faster than SQLite
 - ✅ Stable performance (low std dev)
 
 ### GET Performance (10,000 records)
 
-| Database | Average Time | Std Dev | Throughput (rec/sec) | vs DBX |
+| Database | Average Time | Std Dev | Throughput (rec/sec) | vs ByteRAG |
 |----------|--------------|---------|----------------------|--------|
-| **DBX** | **2.84ms** | ±0.01ms | **3,521,127** | **1.0× (baseline)** |
+| **ByteRAG** | **2.84ms** | ±0.01ms | **3,521,127** | **1.0× (baseline)** |
 | Redb | 2.96ms | ±0.17ms | 3,378,378 | **0.95× (4% slower)** |
 | Sled | 5.88ms | ±0.03ms | 1,700,680 | **0.48× (107% slower)** |
 | SQLite | 33.8ms | ±0.48ms | 295,857 | **0.08× (1,090% slower)** |
 
-**DBX Advantages**:
+**ByteRAG Advantages**:
 - ✅ **11x faster than SQLite**
 - ✅ 4% faster than Redb
 - ✅ 2x faster than Sled
 
 ### SCAN Performance (10,000 records)
 
-| Database | Average Time | Std Dev | Throughput (rec/sec) | vs DBX |
+| Database | Average Time | Std Dev | Throughput (rec/sec) | vs ByteRAG |
 |----------|--------------|---------|----------------------|--------|
-| **DBX** | **51µs** | ±0.01µs | **19,607,843** | **1.0× (baseline)** |
+| **ByteRAG** | **51µs** | ±0.01µs | **19,607,843** | **1.0× (baseline)** |
 | Redb | 2.08ms | ±0.02ms | 480,769 | **0.02× (3,978% slower)** |
 | SQLite | 340µs | ±0.16ms | 2,941,176 | **0.15× (566% slower)** |
 | Sled | 4.64ms | ±0.10ms | 215,517 | **0.01× (8,998% slower)** |
 
-**DBX Advantages**:
+**ByteRAG Advantages**:
 - ✅ **Faster than all competitors**
 - ✅ 40x faster than Redb
 - ✅ 6x faster than SQLite
@@ -246,8 +246,8 @@ durability = DurabilityLevel::None
 
 ```bash
 # Clone project
-git clone https://github.com/ByteLogicCore/DBX.git
-cd DBX
+git clone https://github.com/bytelogiccore-spec/ByteRAG.git
+cd ByteRAG
 
 # Run full comparison benchmark
 cargo bench -p byterag-benchmarks --bench official_db_comparison
@@ -263,7 +263,7 @@ cargo bench -p byterag-benchmarks --bench official_db_comparison -- redb_
 
 ## Conclusion
 
-DBX v0.0.6-beta **achieved 1st place in all major operations** (INSERT, GET, SCAN).
+ByteRAG v0.0.6-beta **achieved 1st place in all major operations** (INSERT, GET, SCAN).
 
 ### Key Achievements
 
@@ -278,14 +278,15 @@ DBX v0.0.6-beta **achieved 1st place in all major operations** (INSERT, GET, SCA
 3. **Pure Rust**: Memory safety and zero-cost abstractions
 4. **Optimized Algorithms**: Fast-path and inline optimizations
 
-DBX is the **optimal choice for applications requiring high-performance write workloads and balanced read/write performance**.
+ByteRAG is the **optimal choice for applications requiring high-performance write workloads and balanced read/write performance**.
 
 ---
 
 ## Next Steps
 
 - [Architecture](architecture) — Understand the 5-Tier Hybrid Storage
-- [Getting Started](getting-started) — Try DBX yourself
+- [Getting Started](getting-started) — Try ByteRAG yourself
 - [GPU Acceleration](guides/gpu-acceleration) — Accelerate analytical queries
 - [Examples](examples/quick-start) — Explore code examples
+
 

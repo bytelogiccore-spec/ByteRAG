@@ -7,28 +7,31 @@ nav_order: 29
 
 # WAL Recovery
 
-DBX는 Write-Ahead Log (WAL)를 사용하여 크래시 복구와 데이터 무결성을 보장합니다.
+ByteRAG uses a Write-Ahead Log (WAL) to guarantee crash recovery and data integrity.
 
 ## Overview
 
-WAL의 주요 특징:
-- **크래시 복구**: 시스템 장애 시 자동으로 데이터 복구
-- **원자성 보장**: 트랜잭션의 All-or-Nothing 보장
-- **순차 쓰기**: 디스크 I/O 최적화
-- **체크포인트**: 주기적으로 WAL을 WOS에 반영
+Key WAL characteristics:
+- **Crash recovery**: Automatic recovery after system failure
+- **Atomicity**: All-or-Nothing for transactions
+- **Sequential writes**: Optimized disk I/O
+- **Checkpoint on flush**: `flush()` applies Delta → WOS, then synchronously checkpoints and truncates `wal.log`
+
+There is **no idle-based WAL trim**. Library callers must call `flush()` when they want durable WOS materialization and log cleanup.
 
 ## How WAL Works
 
 ```
-1. 쓰기 요청
+1. Write request
    ↓
-2. WAL에 기록 (순차 쓰기)
+2. Append to WAL (sequential write)
    ↓
-3. 메모리에 반영
+3. Apply to in-memory Delta
    ↓
-4. 주기적으로 WOS에 플러시
+4. Caller invokes flush()
    ↓
-5. WAL 정리
+5. WAL cleanup on flush()
+   (Delta → WOS, then sync checkpoint + truncate wal.log)
 ```
 
 ## Quick Start
@@ -110,16 +113,16 @@ use byterag_core::Database;
 }
 ```
 
-### 3. 수동 플러시
+### 3. Manual flush
 
-WAL을 WOS에 수동으로 반영합니다:
+`flush()` materializes Delta → WOS and then **synchronously checkpoints and truncates** `wal.log`. Callers must invoke it explicitly; ByteRAG does not trim the WAL on idle.
 
 ```rust
 use byterag_core::Database;
 
 let db = Database::open("./db".as_ref())?;
 
-// 데이터 삽입
+// Inserts (WAL + Delta; insert path unchanged)
 for i in 0..1000 {
     let key = format!("key:{}", i).into_bytes();
     db.insert("data", &key, b"value")?;
@@ -127,10 +130,10 @@ for i in 0..1000 {
 
 println!("✓ Data in WAL");
 
-// 수동 플러시
+// Explicit flush: Delta → WOS, then checkpoint + truncate wal.log
 db.flush()?;
 
-println!("✓ WAL flushed to WOS");
+println!("✓ WAL flushed, checkpointed, and truncated");
 ```
 
 ### 4. Durability 레벨 조정
@@ -159,7 +162,7 @@ let db = Database::open_with_durability(
 use byterag_core::{Database, ByteRagResult};
 
 fn main() -> ByteRagResult<()> {
-    println!("=== DBX WAL Recovery Example ===\n");
+    println!("=== ByteRAG WAL Recovery Example ===\n");
     
     // 1. 초기 데이터 삽입
     println!("--- Initial Write ---");
@@ -210,9 +213,9 @@ fn main() -> ByteRagResult<()> {
         
         println!("✓ Inserted 50 more users");
         
-        // 명시적 플러시
+        // 명시적 플러시 (Delta → WOS + 동기 체크포인트/truncate)
         db.flush()?;
-        println!("✓ Flushed to WOS\n");
+        println!("✓ Flushed, checkpointed, and truncated wal.log\n");
     }
     
     // 4. 최종 검증
@@ -238,7 +241,7 @@ cargo run --example simple_crud
 ## Expected Output
 
 ```
-=== DBX WAL Recovery Example ===
+=== ByteRAG WAL Recovery Example ===
 
 --- Initial Write ---
 ✓ Inserted 50 users
@@ -250,7 +253,7 @@ cargo run --example simple_crud
 
 --- Additional Write + Flush ---
 ✓ Inserted 50 more users
-✓ Flushed to WOS
+✓ Flushed, checkpointed, and truncated wal.log
 
 --- Final Verification ---
 ✓ Total users: 100
@@ -304,13 +307,15 @@ let db = Database::open("./app.db".as_ref())?;
 let db = Database::open_fast("./cache.db")?;
 ```
 
-### 2. 주기적 플러시
+### 2. Call flush() from your app
+
+There is no idle-based trim. Schedule or trigger `flush()` yourself when you need WOS durability and a truncated `wal.log`:
 
 ```rust
 use std::time::Duration;
 use std::thread;
 
-// 백그라운드 플러시 스레드
+// Application-owned flush loop (library does not auto-trim on idle)
 thread::spawn(move || {
     loop {
         thread::sleep(Duration::from_secs(60));
@@ -319,35 +324,55 @@ thread::spawn(move || {
 });
 ```
 
-### 3. 체크포인트 관리
+### 3. Checkpoint after bulk inserts
 
 ```rust
-// 대량 삽입 후 체크포인트
+// After bulk inserts, flush to checkpoint and truncate WAL
 for i in 0..1000000 {
     db.insert("data", &key, &value)?;
 }
-db.flush()?;  // WAL을 WOS에 반영
+db.flush()?;  // Delta → WOS, then sync checkpoint + truncate wal.log
 ```
+
+## Performance notes
+
+- **Insert path**: Unchanged — writes still append to WAL and update Delta without paying full checkpoint cost on every insert.
+- **Flush path**: May be heavier than before, because `flush()` now also synchronously checkpoints and truncates `wal.log` after Delta → WOS.
+- Call `flush()` at a cadence that matches your durability and recovery-time goals; more frequent flushes keep `wal.log` smaller but add checkpoint cost.
+
+## Database file export / import (`.brdb`)
+
+Use portable packs for backup and transfer:
+
+```rust
+db.export_to_file("store.brdb")?;              // v1 whole-blob (calls flush first)
+let db2 = Database::open_from_file("store.brdb")?;
+// Seekable frames (partial decompress):
+db.export_to_file_version("store-v2.brdb", 2)?;
+```
+
+Live work still uses a directory (`wal.log` + `wos/`). Call `flush()` (or `export_to_file`) when you need WAL size bounded.
 
 ## Troubleshooting
 
-### WAL 파일이 계속 커지는 경우
+### WAL file keeps growing
 
 ```rust
-// 주기적으로 플러시하여 WAL 정리
+// No idle trim — call flush() to checkpoint and truncate wal.log
 db.flush()?;
 ```
 
-### 복구 시간이 오래 걸리는 경우
+### Recovery takes a long time
 
 ```rust
-// 더 자주 플러시하여 WAL 크기 감소
-db.set_flush_interval(Duration::from_secs(30))?;
+// Flush more often from the application so wal.log stays smaller
+db.flush()?;
 ```
 
 ## Next Steps
 
-- [Transactions](./transactions.md) - WAL과 MVCC 트랜잭션
-- [CRUD Operations](./crud-operations.md) - 기본 데이터 작업
-- [Encryption](./encryption.md) - 암호화된 WAL
+- [Transactions](./transactions.md) - WAL and MVCC transactions
+- [CRUD Operations](./crud-operations.md) - Basic data operations
+- [Encryption](./encryption.md) - Encrypted WAL
+
 

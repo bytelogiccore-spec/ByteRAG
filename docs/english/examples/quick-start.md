@@ -7,7 +7,7 @@ nav_order: 11
 
 # Quick Start
 
-Get started with DBX in 5 minutes — the fastest guide to jump in.
+Get started with ByteRAG in 5 minutes — the fastest guide to jump in.
 
 ## 1. Opening a Database
 
@@ -76,4 +76,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**CRUD Operations Guide**](../guides/crud-operations.md) — Complete CRUD guide
 - [**SQL Quick Start**](sql-quick-start.md) — SQL basics
 - [**Transactions**](../guides/transactions.md) — Transaction usage
+
 

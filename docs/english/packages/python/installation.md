@@ -40,7 +40,7 @@ uv pip install byterag-py
 from byterag_py import Database
 
 db = Database.open_in_memory()
-print("DBX Python loaded successfully!")
+print("ByteRAG Python loaded successfully!")
 db.close()
 ```
 
@@ -59,8 +59,8 @@ pip install byterag-py
 ### conda
 
 ```bash
-conda create -n dbx python=3.11
-conda activate dbx
+conda create -n ByteRAG python=3.11
+conda activate ByteRAG
 pip install byterag-py
 ```
 
@@ -99,4 +99,5 @@ pip show byterag-py
 - [Quick Start](quickstart) - Get started in 5 minutes
 - [SQL Guide](sql-guide) - SQL usage
 - [API Reference](api-reference) - Complete API
+
 

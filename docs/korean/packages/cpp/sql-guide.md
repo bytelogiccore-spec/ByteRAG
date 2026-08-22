@@ -9,14 +9,14 @@ nav_order: 4
 
 # SQL 가이드
 
-DBX는 표준 SQL을 지원합니다. C/C++에서 `byterag_execute_sql` 함수로 사용할 수 있습니다.
+ByteRAG는 표준 SQL을 지원합니다. C/C++에서 `byterag_execute_sql` 함수로 사용할 수 있습니다.
 
 ## 테이블 생성 (CREATE TABLE)
 
 ### C 예제
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 
 int main() {
@@ -49,11 +49,11 @@ int main() {
 ### C++ 예제
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 
 int main() {
-    auto db = dbx::Database::open("mydb.db");
+    auto db = ByteRAG::Database::open("mydb.db");
     
     // 기본 테이블
     db.executeSql(R"(
@@ -289,7 +289,7 @@ try {
 ### 사용자 관리 시스템 (C)
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -364,17 +364,17 @@ int main() {
 ### 사용자 관리 시스템 (C++)
 
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <iostream>
 #include <sstream>
 #include <chrono>
 
 class UserManager {
 private:
-    dbx::Database db;
+    ByteRAG::Database db;
 
 public:
-    UserManager(const std::string& dbPath) : db(dbx::Database::open(dbPath)) {
+    UserManager(const std::string& dbPath) : db(ByteRAG::Database::open(dbPath)) {
         // 스키마 초기화
         db.executeSql(R"(
             CREATE TABLE IF NOT EXISTS users (
@@ -501,4 +501,6 @@ byterag_execute_sql(db, sql);
 - [C API](c-api) - C 함수 레퍼런스
 - [C++ API](cpp-api) - C++ 클래스 레퍼런스
 - [실전 예제](examples) - 더 많은 예제
+
+
 

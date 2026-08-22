@@ -7,7 +7,7 @@ nav_order: 25
 
 # Encryption
 
-DBX supports strong encryption using AES-256-GCM-SIV and ChaCha20-Poly1305.
+ByteRAG supports strong encryption using AES-256-GCM-SIV and ChaCha20-Poly1305.
 
 ## Creating Encrypted Database
 
@@ -66,7 +66,7 @@ let db = Database::open_encrypted("./data", enc)?;
 
 ## Key Derivation from Password
 
-DBX uses PBKDF2 with SHA-256 for key derivation:
+ByteRAG uses PBKDF2 with SHA-256 for key derivation:
 
 ```rust
 // Automatically derives 256-bit key from password
@@ -221,4 +221,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [Transactions](transactions) — Combine encryption with ACID transactions
 - [Architecture](../architecture) — Learn about encryption internals
 - [Benchmarks](../benchmarks) — Encryption performance impact
+
 

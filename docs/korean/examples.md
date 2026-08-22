@@ -3,16 +3,16 @@ layout: default
 title: 예제
 nav_order: 10
 parent: 한국어
-description: "DBX 코드 예제"
+description: "ByteRAG 코드 예제"
 ---
 
 # 예제
 
-DBX의 기능을 보여주는 실용적인 코드 예제들입니다.
+ByteRAG의 기능을 보여주는 실용적인 코드 예제들입니다.
 
 ## 🚀 시작하기
 
-DBX를 처음 접하신다면 여기부터 시작하세요:
+ByteRAG를 처음 접하신다면 여기부터 시작하세요:
 
 - [**빠른 시작**](./examples/quick-start.md) - 5분 시작 가이드 (CRUD 기본)
 - [**SQL 빠른 시작**](./examples/sql-quick-start.md) - SQL 기본 사용법
@@ -93,11 +93,13 @@ cargo run --example gpu_acceleration
 
 ## 🔗 관련 리소스
 
-- [아키텍처](../architecture.md) - DBX의 5-Tier 하이브리드 스토리지 이해하기
+- [아키텍처](../architecture.md) - ByteRAG의 5-Tier 하이브리드 스토리지 이해하기
 - [벤치마크](../benchmarks.md) - 성능 비교 확인
 - [API 레퍼런스](../api/) - 상세 API 문서
 
 ---
 
-**도움이 필요하신가요?** [이슈를 등록](https://github.com/bytelogiccore-spec/DBX/issues)해 주세요.
+**도움이 필요하신가요?** [이슈를 등록](https://github.com/bytelogiccore-spec/ByteRAG/issues)해 주세요.
+
+
 

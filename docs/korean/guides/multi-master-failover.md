@@ -8,7 +8,7 @@ grand_parent: 한국어
 
 # Multi-Master Failover
 
-DBX의 Multi-Master Failover는 클러스터 내 마스터 노드 장애 시 자동으로 새로운 마스터를 선출하여 고가용성을 보장합니다.
+ByteRAG의 Multi-Master Failover는 클러스터 내 마스터 노드 장애 시 자동으로 새로운 마스터를 선출하여 고가용성을 보장합니다.
 
 ---
 
@@ -16,7 +16,7 @@ DBX의 Multi-Master Failover는 클러스터 내 마스터 노드 장애 시 자
 
 ```
 ┌───────────────────────────────────────┐
-│           DBX 클러스터                 │
+│           ByteRAG 클러스터                 │
 │  ┌─────────┐  ┌─────────┐  ┌───────┐ │
 │  │ Master  │  │ Slave 1 │  │Slave 2│ │
 │  │ (term=3)│  │(Follower│  │       │ │
@@ -114,4 +114,6 @@ assert!(vc_a.happens_before(&vc_b));
 | `replication/node.rs` | Quorum 선거, Heartbeat, term 관리 |
 | `replication/protocol.rs` | VoteRequest, VoteResponse, Promotion 메시지 |
 | `replication/vector_clock.rs` | 벡터 클록 구현 |
+
+
 

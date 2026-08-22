@@ -8,7 +8,7 @@ grand_parent: 한국어
 
 # QUIC 분산 레플리케이션
 
-DBX는 AWS의 `s2n-quic`을 기반으로 프로세스 간 실제 네트워크 레플리케이션을 지원합니다.
+ByteRAG는 AWS의 `s2n-quic`을 기반으로 프로세스 간 실제 네트워크 레플리케이션을 지원합니다.
 
 ---
 
@@ -39,8 +39,8 @@ let config = DbConfig::default();
 let config = DbConfig {
     replication: ReplicationConfig::quic(
         "0.0.0.0:7878",       // 이 노드가 바인딩할 주소
-        "/etc/dbx/cert.pem",  // TLS 인증서
-        "/etc/dbx/key.pem",   // TLS 개인키
+        "/etc/ByteRAG/cert.pem",  // TLS 인증서
+        "/etc/ByteRAG/key.pem",   // TLS 개인키
         3,                     // 클러스터 노드 수 (Quorum 계산용)
     ),
     ..Default::default()
@@ -61,9 +61,9 @@ let transport = config.replication.build_transport_async(tx).await?;
 use byterag_core::replication::transport::quic::generate_self_signed_cert;
 use std::path::Path;
 
-let (cert, key) = generate_self_signed_cert(Path::new("/tmp/dbx-certs"))?;
-// cert = /tmp/dbx-certs/cert.pem
-// key  = /tmp/dbx-certs/key.pem
+let (cert, key) = generate_self_signed_cert(Path::new("/tmp/ByteRAG-certs"))?;
+// cert = /tmp/ByteRAG-certs/cert.pem
+// key  = /tmp/ByteRAG-certs/key.pem
 ```
 
 또는 openssl CLI로 직접 생성:
@@ -91,8 +91,8 @@ use std::path::Path;
 // 서버 시작 (수신 노드)
 let (server_node, handle) = QuicNode::server(
     "0.0.0.0:7878",
-    Path::new("/etc/dbx/cert.pem"),
-    Path::new("/etc/dbx/key.pem"),
+    Path::new("/etc/ByteRAG/cert.pem"),
+    Path::new("/etc/ByteRAG/key.pem"),
 ).await?;
 tokio::spawn(handle);
 
@@ -104,7 +104,7 @@ if let Some(msg) = server_node.try_recv().await {
 // 클라이언트 연결 (발신 노드)
 let (client_node, handle) = QuicNode::client(
     "10.0.0.2:7878",
-    Path::new("/etc/dbx/ca-cert.pem"),
+    Path::new("/etc/ByteRAG/ca-cert.pem"),
 ).await?;
 tokio::spawn(handle);
 
@@ -145,4 +145,6 @@ client_node.send_msg(msg, "10.0.0.2:7878".to_string()).await;
 |------|------|
 | `replication/transport.rs` | Transport trait, ReplicationConfig, QuicTransport |
 | `replication/transport.rs::quic` | QuicNode 서버/클라이언트, 인증서 헬퍼 |
+
+
 

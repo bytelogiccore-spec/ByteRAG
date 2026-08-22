@@ -7,7 +7,7 @@ nav_order: 12
 
 # SQL Quick Start
 
-The fastest way to use SQL in DBX.
+The fastest way to use SQL in ByteRAG.
 
 ## 1. Creating a Table
 
@@ -99,4 +99,5 @@ fn main() -> byterag_core::ByteRagResult<()> {
 - [**SQL Reference**](../guides/sql-reference.md) — Complete SQL reference
 - [**GPU Acceleration**](../guides/gpu-acceleration.md) — Accelerate SQL queries
 - [**Indexing**](indexing.md) — Query optimization
+
 

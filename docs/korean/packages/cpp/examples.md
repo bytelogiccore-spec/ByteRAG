@@ -13,14 +13,14 @@ nav_order: 8
 
 {% raw %}
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include "httplib.h"
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
 int main() {
-    auto db = dbx::Database::open("api.db");
+    auto db = ByteRAG::Database::open("api.db");
     db.executeSql("CREATE TABLE IF NOT EXISTS users (id INTEGER, name TEXT, email TEXT)");
     
     httplib::Server svr;
@@ -55,7 +55,7 @@ int main() {
 ## 로그 수집기 (C)
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 #include <time.h>
 
@@ -116,7 +116,7 @@ int main() {
 ## 임베디드 시스템 (C)
 
 ```c
-#include "dbx.h"
+#include "ByteRAG.h"
 #include <stdio.h>
 
 // 센서 데이터 저장
@@ -175,17 +175,17 @@ int main() {
 
 {% raw %}
 ```cpp
-#include "dbx.hpp"
+#include "ByteRAG.hpp"
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
 class GameSaveSystem {
 private:
-    dbx::Database db;
+    ByteRAG::Database db;
 
 public:
-    GameSaveSystem(const std::string& dbPath) : db(dbx::Database::open(dbPath)) {
+    GameSaveSystem(const std::string& dbPath) : db(ByteRAG::Database::open(dbPath)) {
         db.executeSql(R"(
             CREATE TABLE IF NOT EXISTS saves (
                 slot INTEGER PRIMARY KEY,
@@ -247,4 +247,5 @@ int main() {
 - [C API](c-api) - C 함수 레퍼런스
 - [C++ API](cpp-api) - C++ 클래스 레퍼런스
 - [고급 기능](advanced) - 트랜잭션, 멀티스레딩
+
 

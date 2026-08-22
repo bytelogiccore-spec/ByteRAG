@@ -9,7 +9,7 @@ nav_order: 4
 
 # SQL 가이드
 
-DBX는 표준 SQL을 지원합니다. .NET에서 강력한 타입 안전성과 함께 사용할 수 있습니다.
+ByteRAG는 표준 SQL을 지원합니다. .NET에서 강력한 타입 안전성과 함께 사용할 수 있습니다.
 
 ## 테이블 생성 (CREATE TABLE)
 
@@ -285,7 +285,7 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DBX를 싱글톤으로 등록
+// ByteRAG를 싱글톤으로 등록
 builder.Services.AddSingleton<Database>(sp =>
 {
     var db = Database.Open("api.db");
@@ -467,3 +467,4 @@ db.ExecuteSql($"INSERT INTO users (name) VALUES ('{name}')");
 - [고급 기능](advanced) - 트랜잭션, 암호화
 - [API 레퍼런스](api-reference) - 전체 API
 - [실전 예제](examples) - 더 많은 예제
+

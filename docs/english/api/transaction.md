@@ -7,13 +7,13 @@ parent: English
 
 # Transaction API
 
-MVCC transaction management for DBX.
+MVCC transaction management for ByteRAG.
 
 ---
 
 ## Overview
 
-DBX provides **MVCC (Multi-Version Concurrency Control)** transactions with **Snapshot Isolation**. Transactions use the **Typestate pattern** for compile-time safety.
+ByteRAG provides **MVCC (Multi-Version Concurrency Control)** transactions with **Snapshot Isolation**. Transactions use the **Typestate pattern** for compile-time safety.
 
 **Transaction States:**
 - `Active` - Transaction is active, can perform operations
@@ -180,7 +180,7 @@ tx.commit()?;
 
 ## Typestate Pattern
 
-DBX uses the **Typestate pattern** to enforce transaction state at compile time.
+ByteRAG uses the **Typestate pattern** to enforce transaction state at compile time.
 
 **Compile-Time Safety:**
 ```rust
@@ -206,7 +206,7 @@ Active
 
 ## Garbage Collection
 
-DBX automatically performs **garbage collection** of old transaction versions.
+ByteRAG automatically performs **garbage collection** of old transaction versions.
 
 **Configuration:**
 ```rust
@@ -301,4 +301,5 @@ match tx.commit() {
 - [Database API](database) - Core database operations
 - [Transactions Guide](../guides/transactions) - Detailed transaction patterns
 - [CRUD Operations Guide](../guides/crud-operations) - Basic CRUD operations
+
 

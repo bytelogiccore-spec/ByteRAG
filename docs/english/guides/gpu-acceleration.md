@@ -3,13 +3,13 @@ layout: default
 title: GPU Acceleration
 parent: English
 nav_order: 24
-description: "CUDA-based GPU acceleration for analytical queries in DBX"
+description: "CUDA-based GPU acceleration for analytical queries in ByteRAG"
 ---
 
 # GPU Acceleration
 {: .no_toc }
 
-Complete guide to GPU acceleration in DBX using CUDA.
+Complete guide to GPU acceleration in ByteRAG using CUDA.
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -22,7 +22,7 @@ Complete guide to GPU acceleration in DBX using CUDA.
 
 ## Overview
 
-DBX provides optional **CUDA-based GPU acceleration** for analytical queries, offering significant performance improvements for large datasets.
+ByteRAG provides optional **CUDA-based GPU acceleration** for analytical queries, offering significant performance improvements for large datasets.
 
 ### Performance Gains
 
@@ -256,7 +256,7 @@ if let Some(gpu) = db.gpu_manager() {
 
 ## Hash Strategies
 
-DBX supports three GPU hash strategies for different performance characteristics:
+ByteRAG supports three GPU hash strategies for different performance characteristics:
 
 ### Linear Probing (Default)
 
@@ -328,7 +328,7 @@ db.set_gpu_hash_strategy(HashStrategy::RobinHood)?;
 
 ## Sharding Strategies
 
-For multi-GPU environments, DBX provides three sharding strategies to distribute data across devices:
+For multi-GPU environments, ByteRAG provides three sharding strategies to distribute data across devices:
 
 | Strategy | Behavior | Recommended For |
 |----------|----------|-----------------|
@@ -585,7 +585,7 @@ if row_count > 1_000_000 {
 
 ### Custom CUDA Kernels
 
-For advanced users, DBX allows custom CUDA kernels:
+For advanced users, ByteRAG allows custom CUDA kernels:
 
 ```rust
 use byterag_core::gpu::CudaKernel;
@@ -676,4 +676,5 @@ if let Some(gpu) = db.gpu_manager() {
 - [Storage Layers](storage-layers) — Understand data flow
 - [Performance Benchmarks](../benchmarks) — Optimize GPU performance
 - [Benchmarks](../benchmarks) — See detailed performance comparisons
+
 
